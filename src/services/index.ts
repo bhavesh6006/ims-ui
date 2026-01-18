@@ -1,0 +1,8 @@
+export { trollyService } from './trollyService'
+export { materialService } from './materialService'
+export { mappingService } from './mappingService'
+export { storeLocationService } from './storeLocationService'
+export { rfidAntennaService } from './rfidAntennaService'
+export { workOrderService } from './workOrderService'
+export { loadingService } from './loadingService'
+export { movementService } from './movementService'
