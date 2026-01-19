@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { MainLayout } from '../components/templates'
 import {
   Box,
   Typography,
@@ -368,50 +367,47 @@ const OperatorLoading: React.FC = () => {
   }
 
   return (
-    <MainLayout>
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Operator Loading
-        </Typography>
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        Operator Loading
+      </Typography>
 
-        <Paper sx={{ p: 3, mt: 3 }}>
-          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
+      <Paper sx={{ p: 3, mt: 3 }}>
+        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+          {steps.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
 
-          <Box sx={{ minHeight: 300 }}>{renderStepContent(activeStep)}</Box>
+        <Box sx={{ minHeight: 300 }}>{renderStepContent(activeStep)}</Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-            <Button disabled={activeStep === 0} onClick={handleBack}>
-              Back
-            </Button>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              {activeStep === steps.length - 1 ? (
-                <Button variant="contained" onClick={handleSubmit}>
-                  Submit
-                </Button>
-              ) : (
-                <Button variant="contained" onClick={handleNext}>
-                  Next
-                </Button>
-              )}
-            </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+          <Button disabled={activeStep === 0} onClick={handleBack}>
+            Back
+          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {activeStep === steps.length - 1 ? (
+              <Button variant="contained" onClick={handleSubmit}>
+                Submit
+              </Button>
+            ) : (
+              <Button variant="contained" onClick={handleNext}>
+                Next
+              </Button>
+            )}
           </Box>
-        </Paper>
+        </Box>
+      </Paper>
 
-        <Alert
-          open={alert.open}
-          message={alert.message}
-          severity={alert.severity}
-          onClose={() => setAlert({ ...alert, open: false })}
-        />
-      </Box>
-    </MainLayout>
+      <Alert
+        open={alert.open}
+        message={alert.message}
+        severity={alert.severity}
+        onClose={() => setAlert({ ...alert, open: false })}
+      />
+    </Box>
   )
 }
-
 export default OperatorLoading

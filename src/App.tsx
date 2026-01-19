@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react'
+import { Suspense, lazy } from 'react'
 import {
   BrowserRouter as Router,
   Routes,
@@ -12,6 +12,7 @@ import {
   CircularProgress,
   Box,
 } from '@mui/material'
+import MainLayout from './components/templates/MainLayout'
 
 // Lazy load pages for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -67,31 +68,33 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            {/* Master Data Routes */}
-            <Route path="/trolly-master" element={<TrollyMaster />} />
-            <Route path="/material-master" element={<MaterialMaster />} />
-            <Route
-              path="/trolly-material-mapping"
-              element={<TrollyMaterialMapping />}
-            />
-            <Route
-              path="/store-location-master"
-              element={<StoreLocationMaster />}
-            />
-            <Route
-              path="/rfid-antenna-master"
-              element={<RFIDAntennaMaster />}
-            />
-            {/* Operations Routes */}
-            <Route path="/operator-loading" element={<OperatorLoading />} />
-            <Route path="/movement-tracking" element={<MovementTracking />} />
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+        <MainLayout>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              {/* Master Data Routes */}
+              <Route path="/trolly-master" element={<TrollyMaster />} />
+              <Route path="/material-master" element={<MaterialMaster />} />
+              <Route
+                path="/trolly-material-mapping"
+                element={<TrollyMaterialMapping />}
+              />
+              <Route
+                path="/store-location-master"
+                element={<StoreLocationMaster />}
+              />
+              <Route
+                path="/rfid-antenna-master"
+                element={<RFIDAntennaMaster />}
+              />
+              {/* Operations Routes */}
+              <Route path="/operator-loading" element={<OperatorLoading />} />
+              <Route path="/movement-tracking" element={<MovementTracking />} />
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </MainLayout>
       </Router>
     </ThemeProvider>
   )

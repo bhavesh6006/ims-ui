@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Box, Toolbar } from '@mui/material'
+import { Box } from '@mui/material'
 import { Navbar, Sidebar } from '../organisms'
 
 interface MainLayoutProps {
@@ -14,14 +14,22 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   }
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <Navbar
         onMenuClick={handleSidebarToggle}
         title="Inventory Management System"
       />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <Box component="main" sx={{ flexGrow: 1, p: 3, width: '100%' }}>
-        <Toolbar />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 2,
+          mt: 8,
+          width: '100%',
+          bgcolor: 'background.default',
+        }}
+      >
         {children}
       </Box>
     </Box>

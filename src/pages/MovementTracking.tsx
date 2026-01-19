@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { MainLayout } from '../components/templates'
 import {
   Box,
   Typography,
@@ -79,87 +78,84 @@ const MovementTracking: React.FC = () => {
   }
 
   return (
-    <MainLayout>
-      <Box sx={{ p: 3 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-          }}
-        >
-          <Typography variant="h4">Movement Tracking</Typography>
-          <Chip
-            icon={<RefreshIcon />}
-            label={autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            color={autoRefresh ? 'success' : 'default'}
-            clickable
-          />
-        </Box>
-
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 2,
-            mb: 3,
-          }}
-        >
-          <Paper sx={{ p: 2 }}>
-            <Typography color="text.secondary" variant="body2">
-              Entries
-            </Typography>
-            <Typography variant="h4">{stats.entries}</Typography>
-          </Paper>
-          <Paper sx={{ p: 2 }}>
-            <Typography color="text.secondary" variant="body2">
-              Exits
-            </Typography>
-            <Typography variant="h4">{stats.exits}</Typography>
-          </Paper>
-          <Paper sx={{ p: 2 }}>
-            <Typography color="text.secondary" variant="body2">
-              Transfers
-            </Typography>
-            <Typography variant="h4">{stats.transfers}</Typography>
-          </Paper>
-          <Paper sx={{ p: 2 }}>
-            <Typography color="text.secondary" variant="body2">
-              Active Trollies
-            </Typography>
-            <Typography variant="h4">{stats.activeTrollies}</Typography>
-          </Paper>
-        </Box>
-
-        <Box sx={{ mb: 3 }}>
-          <ToggleButtonGroup
-            value={filter}
-            exclusive
-            onChange={(_, newFilter) => newFilter && setFilter(newFilter)}
-            size="small"
-          >
-            <ToggleButton value="all">All</ToggleButton>
-            <ToggleButton value="Entry">Entry</ToggleButton>
-            <ToggleButton value="Exit">Exit</ToggleButton>
-            <ToggleButton value="Internal Transfer">Internal</ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-
-        <DataTable
-          columns={columns}
-          data={movements}
-          page={0}
-          rowsPerPage={50}
-          totalRows={movements.length}
-          onPageChange={() => {}}
-          onRowsPerPageChange={() => {}}
-          showActions={false}
+    <Box>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 3,
+        }}
+      >
+        <Typography variant="h4">Movement Tracking</Typography>
+        <Chip
+          icon={<RefreshIcon />}
+          label={autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
+          onClick={() => setAutoRefresh(!autoRefresh)}
+          color={autoRefresh ? 'success' : 'default'}
+          clickable
         />
       </Box>
-    </MainLayout>
+
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        <Paper sx={{ p: 2 }}>
+          <Typography color="text.secondary" variant="body2">
+            Entries
+          </Typography>
+          <Typography variant="h4">{stats.entries}</Typography>
+        </Paper>
+        <Paper sx={{ p: 2 }}>
+          <Typography color="text.secondary" variant="body2">
+            Exits
+          </Typography>
+          <Typography variant="h4">{stats.exits}</Typography>
+        </Paper>
+        <Paper sx={{ p: 2 }}>
+          <Typography color="text.secondary" variant="body2">
+            Transfers
+          </Typography>
+          <Typography variant="h4">{stats.transfers}</Typography>
+        </Paper>
+        <Paper sx={{ p: 2 }}>
+          <Typography color="text.secondary" variant="body2">
+            Active Trollies
+          </Typography>
+          <Typography variant="h4">{stats.activeTrollies}</Typography>
+        </Paper>
+      </Box>
+
+      <Box sx={{ mb: 3 }}>
+        <ToggleButtonGroup
+          value={filter}
+          exclusive
+          onChange={(_, newFilter) => newFilter && setFilter(newFilter)}
+          size="small"
+        >
+          <ToggleButton value="all">All</ToggleButton>
+          <ToggleButton value="Entry">Entry</ToggleButton>
+          <ToggleButton value="Exit">Exit</ToggleButton>
+          <ToggleButton value="Internal Transfer">Internal</ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      <DataTable
+        columns={columns}
+        data={movements}
+        page={0}
+        rowsPerPage={50}
+        totalRows={movements.length}
+        onPageChange={() => {}}
+        onRowsPerPageChange={() => {}}
+        showActions={false}
+      />
+    </Box>
   )
 }
-
 export default MovementTracking

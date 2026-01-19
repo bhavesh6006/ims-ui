@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { MainLayout } from '../components/templates'
 import {
   Box,
   Typography,
@@ -178,205 +177,196 @@ const StoreLocationMaster: React.FC = () => {
   }
 
   return (
-    <MainLayout>
-      <Box sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h4">Store Location Master</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAdd}
-          >
-            Add Location
-          </Button>
-        </Box>
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h4">Store Location Master</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
+          Add Location
+        </Button>
+      </Box>
 
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Search locations..."
-          />
-        </Box>
-
-        <DataTable
-          columns={columns}
-          data={locations}
-          page={page}
-          rowsPerPage={pageSize}
-          totalRows={total}
-          onPageChange={setPage}
-          onRowsPerPageChange={setPageSize}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-
-        <Dialog
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>
-            {editingLocation ? 'Edit Location' : 'Add Location'}
-            <IconButton
-              onClick={() => setModalOpen(false)}
-              sx={{ position: 'absolute', right: 8, top: 8 }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent dividers>
-            <Box
-              sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}
-            >
-              <TextField
-                label="Location ID"
-                value={formData.locationId}
-                onChange={(e) =>
-                  setFormData({ ...formData, locationId: e.target.value })
-                }
-                fullWidth
-              />
-              <TextField
-                label="Location Name"
-                value={formData.locationName}
-                onChange={(e) =>
-                  setFormData({ ...formData, locationName: e.target.value })
-                }
-                fullWidth
-              />
-              <FormControl fullWidth>
-                <InputLabel>Type</InputLabel>
-                <Select
-                  value={formData.locationType}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      locationType: e.target.value as
-                        | 'Factory'
-                        | 'Plant'
-                        | 'Store',
-                    })
-                  }
-                >
-                  <MenuItem value="Factory">Factory</MenuItem>
-                  <MenuItem value="Plant">Plant</MenuItem>
-                  <MenuItem value="Store">Store</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>Parent Location</InputLabel>
-                <Select
-                  value={formData.parentLocationId}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      parentLocationId: e.target.value,
-                    })
-                  }
-                >
-                  <MenuItem value="">None</MenuItem>
-                  {locations.map((loc) => (
-                    <MenuItem key={loc.id} value={loc.locationId}>
-                      {loc.locationName}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <TextField
-                label="Factory Code"
-                value={formData.factoryCode}
-                onChange={(e) =>
-                  setFormData({ ...formData, factoryCode: e.target.value })
-                }
-                fullWidth
-              />
-              <TextField
-                label="Plant Code"
-                value={formData.plantCode}
-                onChange={(e) =>
-                  setFormData({ ...formData, plantCode: e.target.value })
-                }
-                fullWidth
-              />
-              <TextField
-                label="Store Code"
-                value={formData.storeCode}
-                onChange={(e) =>
-                  setFormData({ ...formData, storeCode: e.target.value })
-                }
-                fullWidth
-              />
-              <TextField
-                label="Area"
-                type="number"
-                value={formData.area}
-                onChange={(e) =>
-                  setFormData({ ...formData, area: Number(e.target.value) })
-                }
-                fullWidth
-              />
-              <FormControl fullWidth>
-                <InputLabel>Area Unit</InputLabel>
-                <Select
-                  value={formData.areaUnit}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      areaUnit: e.target.value as 'sqft' | 'sqm',
-                    })
-                  }
-                >
-                  <MenuItem value="sqft">sq ft</MenuItem>
-                  <MenuItem value="sqm">sq m</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      status: e.target.value as 'Active' | 'Inactive',
-                    })
-                  }
-                >
-                  <MenuItem value="Active">Active</MenuItem>
-                  <MenuItem value="Inactive">Inactive</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField
-                label="Description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                fullWidth
-                multiline
-                rows={3}
-                sx={{ gridColumn: '1 / -1' }}
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit} variant="contained">
-              {editingLocation ? 'Update' : 'Create'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Alert
-          open={alert.open}
-          message={alert.message}
-          severity={alert.severity}
-          onClose={() => setAlert({ ...alert, open: false })}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search locations..."
         />
       </Box>
-    </MainLayout>
+
+      <DataTable
+        columns={columns}
+        data={locations}
+        page={page}
+        rowsPerPage={pageSize}
+        totalRows={total}
+        onPageChange={setPage}
+        onRowsPerPageChange={setPageSize}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+
+      <Dialog
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingLocation ? 'Edit Location' : 'Add Location'}
+          <IconButton
+            onClick={() => setModalOpen(false)}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <TextField
+              label="Location ID"
+              value={formData.locationId}
+              onChange={(e) =>
+                setFormData({ ...formData, locationId: e.target.value })
+              }
+              fullWidth
+            />
+            <TextField
+              label="Location Name"
+              value={formData.locationName}
+              onChange={(e) =>
+                setFormData({ ...formData, locationName: e.target.value })
+              }
+              fullWidth
+            />
+            <FormControl fullWidth>
+              <InputLabel>Type</InputLabel>
+              <Select
+                value={formData.locationType}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    locationType: e.target.value as
+                      | 'Factory'
+                      | 'Plant'
+                      | 'Store',
+                  })
+                }
+              >
+                <MenuItem value="Factory">Factory</MenuItem>
+                <MenuItem value="Plant">Plant</MenuItem>
+                <MenuItem value="Store">Store</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Parent Location</InputLabel>
+              <Select
+                value={formData.parentLocationId}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    parentLocationId: e.target.value,
+                  })
+                }
+              >
+                <MenuItem value="">None</MenuItem>
+                {locations.map((loc) => (
+                  <MenuItem key={loc.id} value={loc.locationId}>
+                    {loc.locationName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Factory Code"
+              value={formData.factoryCode}
+              onChange={(e) =>
+                setFormData({ ...formData, factoryCode: e.target.value })
+              }
+              fullWidth
+            />
+            <TextField
+              label="Plant Code"
+              value={formData.plantCode}
+              onChange={(e) =>
+                setFormData({ ...formData, plantCode: e.target.value })
+              }
+              fullWidth
+            />
+            <TextField
+              label="Store Code"
+              value={formData.storeCode}
+              onChange={(e) =>
+                setFormData({ ...formData, storeCode: e.target.value })
+              }
+              fullWidth
+            />
+            <TextField
+              label="Area"
+              type="number"
+              value={formData.area}
+              onChange={(e) =>
+                setFormData({ ...formData, area: Number(e.target.value) })
+              }
+              fullWidth
+            />
+            <FormControl fullWidth>
+              <InputLabel>Area Unit</InputLabel>
+              <Select
+                value={formData.areaUnit}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    areaUnit: e.target.value as 'sqft' | 'sqm',
+                  })
+                }
+              >
+                <MenuItem value="sqft">sq ft</MenuItem>
+                <MenuItem value="sqm">sq m</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={formData.status}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    status: e.target.value as 'Active' | 'Inactive',
+                  })
+                }
+              >
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Inactive">Inactive</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Description"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              fullWidth
+              multiline
+              rows={3}
+              sx={{ gridColumn: '1 / -1' }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setModalOpen(false)}>Cancel</Button>
+          <Button onClick={handleSubmit} variant="contained">
+            {editingLocation ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Alert
+        open={alert.open}
+        message={alert.message}
+        severity={alert.severity}
+        onClose={() => setAlert({ ...alert, open: false })}
+      />
+    </Box>
   )
 }
-
 export default StoreLocationMaster

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { MainLayout } from '../components/templates'
 import {
   Box,
   Typography,
@@ -186,164 +185,157 @@ const TrollyMaterialMapping: React.FC = () => {
   }
 
   return (
-    <MainLayout>
-      <Box sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h4">Trolly-Material Mapping</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAdd}
-          >
-            Add Mapping
-          </Button>
-        </Box>
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h4">Trolly-Material Mapping</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
+          Add Mapping
+        </Button>
+      </Box>
 
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Search mappings..."
-          />
-        </Box>
-
-        <DataTable
-          columns={columns}
-          data={mappings}
-          page={page}
-          rowsPerPage={pageSize}
-          totalRows={total}
-          onPageChange={setPage}
-          onRowsPerPageChange={setPageSize}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search mappings..."
         />
+      </Box>
 
-        <Dialog
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            {editingMapping ? 'Edit Mapping' : 'Add Mapping'}
-            <IconButton
-              onClick={() => setModalOpen(false)}
-              sx={{ position: 'absolute', right: 8, top: 8 }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent dividers>
-            <Box sx={{ display: 'grid', gap: 2 }}>
-              <FormControl fullWidth>
-                <InputLabel>Trolly</InputLabel>
-                <Select
-                  value={formData.trollyId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, trollyId: e.target.value })
-                  }
-                  disabled={!!editingMapping}
-                >
-                  {trollies.map((trolly) => (
-                    <MenuItem key={trolly.id} value={trolly.trollyId}>
-                      {trolly.trollyId} ({trolly.trollyType})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>Material</InputLabel>
-                <Select
-                  value={formData.materialId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, materialId: e.target.value })
-                  }
-                  disabled={!!editingMapping}
-                >
-                  {materials.map((material) => (
-                    <MenuItem key={material.id} value={material.materialId}>
-                      {material.materialId} - {material.materialName}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <TextField
-                label="Max Capacity"
-                type="number"
-                value={formData.maxCapacity}
+      <DataTable
+        columns={columns}
+        data={mappings}
+        page={page}
+        rowsPerPage={pageSize}
+        totalRows={total}
+        onPageChange={setPage}
+        onRowsPerPageChange={setPageSize}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+
+      <Dialog
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingMapping ? 'Edit Mapping' : 'Add Mapping'}
+          <IconButton
+            onClick={() => setModalOpen(false)}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: 'grid', gap: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel>Trolly</InputLabel>
+              <Select
+                value={formData.trollyId}
+                onChange={(e) =>
+                  setFormData({ ...formData, trollyId: e.target.value })
+                }
+                disabled={!!editingMapping}
+              >
+                {trollies.map((trolly) => (
+                  <MenuItem key={trolly.id} value={trolly.trollyId}>
+                    {trolly.trollyId} ({trolly.trollyType})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Material</InputLabel>
+              <Select
+                value={formData.materialId}
+                onChange={(e) =>
+                  setFormData({ ...formData, materialId: e.target.value })
+                }
+                disabled={!!editingMapping}
+              >
+                {materials.map((material) => (
+                  <MenuItem key={material.id} value={material.materialId}>
+                    {material.materialId} - {material.materialName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Max Capacity"
+              type="number"
+              value={formData.maxCapacity}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  maxCapacity: Number(e.target.value),
+                })
+              }
+              fullWidth
+            />
+            <TextField
+              label="Effective From"
+              type="date"
+              value={formData.effectiveFrom}
+              onChange={(e) =>
+                setFormData({ ...formData, effectiveFrom: e.target.value })
+              }
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Effective To"
+              type="date"
+              value={formData.effectiveTo}
+              onChange={(e) =>
+                setFormData({ ...formData, effectiveTo: e.target.value })
+              }
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
+            <FormControl fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={formData.status}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    maxCapacity: Number(e.target.value),
+                    status: e.target.value as 'Active' | 'Inactive',
                   })
                 }
-                fullWidth
-              />
-              <TextField
-                label="Effective From"
-                type="date"
-                value={formData.effectiveFrom}
-                onChange={(e) =>
-                  setFormData({ ...formData, effectiveFrom: e.target.value })
-                }
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label="Effective To"
-                type="date"
-                value={formData.effectiveTo}
-                onChange={(e) =>
-                  setFormData({ ...formData, effectiveTo: e.target.value })
-                }
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      status: e.target.value as 'Active' | 'Inactive',
-                    })
-                  }
-                >
-                  <MenuItem value="Active">Active</MenuItem>
-                  <MenuItem value="Inactive">Inactive</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField
-                label="Notes"
-                value={formData.notes}
-                onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
-                }
-                fullWidth
-                multiline
-                rows={3}
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit} variant="contained">
-              {editingMapping ? 'Update' : 'Create'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+              >
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Inactive">Inactive</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Notes"
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              fullWidth
+              multiline
+              rows={3}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setModalOpen(false)}>Cancel</Button>
+          <Button onClick={handleSubmit} variant="contained">
+            {editingMapping ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        <Alert
-          open={alert.open}
-          message={alert.message}
-          severity={alert.severity}
-          onClose={() => setAlert({ ...alert, open: false })}
-        />
-      </Box>
-    </MainLayout>
+      <Alert
+        open={alert.open}
+        message={alert.message}
+        severity={alert.severity}
+        onClose={() => setAlert({ ...alert, open: false })}
+      />
+    </Box>
   )
 }
-
 export default TrollyMaterialMapping

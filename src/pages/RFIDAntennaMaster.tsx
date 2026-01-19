@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { MainLayout } from '../components/templates'
 import {
   Box,
   Typography,
@@ -212,258 +211,249 @@ const RFIDAntennaMaster: React.FC = () => {
   }
 
   return (
-    <MainLayout>
-      <Box sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h4">RFID Antenna Master</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAdd}
-          >
-            Add Antenna
-          </Button>
-        </Box>
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h4">RFID Antenna Master</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
+          Add Antenna
+        </Button>
+      </Box>
 
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Search antennas..."
-          />
-        </Box>
-
-        <DataTable
-          columns={columns}
-          data={antennas}
-          page={page}
-          rowsPerPage={pageSize}
-          totalRows={total}
-          onPageChange={setPage}
-          onRowsPerPageChange={setPageSize}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-
-        <Dialog
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>
-            {editingAntenna ? 'Edit Antenna' : 'Add Antenna'}
-            <IconButton
-              onClick={() => setModalOpen(false)}
-              sx={{ position: 'absolute', right: 8, top: 8 }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent dividers>
-            <Box
-              sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}
-            >
-              <TextField
-                label="Antenna ID"
-                value={formData.antennaId}
-                onChange={(e) =>
-                  setFormData({ ...formData, antennaId: e.target.value })
-                }
-                fullWidth
-              />
-              <TextField
-                label="Antenna Name"
-                value={formData.antennaName}
-                onChange={(e) =>
-                  setFormData({ ...formData, antennaName: e.target.value })
-                }
-                fullWidth
-              />
-              <TextField
-                label="Reader IP"
-                value={formData.readerIp}
-                onChange={(e) =>
-                  setFormData({ ...formData, readerIp: e.target.value })
-                }
-                fullWidth
-              />
-              <TextField
-                label="Reader Port"
-                type="number"
-                value={formData.readerPort}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    readerPort: Number(e.target.value),
-                  })
-                }
-                fullWidth
-              />
-              <FormControl fullWidth>
-                <InputLabel>Role</InputLabel>
-                <Select
-                  value={formData.antennaRole}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      antennaRole: e.target.value as
-                        | 'Entry'
-                        | 'Exit'
-                        | 'Internal',
-                    })
-                  }
-                >
-                  <MenuItem value="Entry">Entry</MenuItem>
-                  <MenuItem value="Exit">Exit</MenuItem>
-                  <MenuItem value="Internal">Internal</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>Location</InputLabel>
-                <Select
-                  value={formData.locationId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, locationId: e.target.value })
-                  }
-                >
-                  <MenuItem value="">None</MenuItem>
-                  {locations.map((loc) => (
-                    <MenuItem key={loc.id} value={loc.locationId}>
-                      {loc.locationName}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <TextField
-                label="Gate ID"
-                value={formData.gateId}
-                onChange={(e) =>
-                  setFormData({ ...formData, gateId: e.target.value })
-                }
-                fullWidth
-              />
-              <TextField
-                label="Power Level (dBm)"
-                type="number"
-                value={formData.powerLevel}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    powerLevel: Number(e.target.value),
-                  })
-                }
-                fullWidth
-              />
-              <TextField
-                label="Frequency (MHz)"
-                type="number"
-                value={formData.frequency}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    frequency: Number(e.target.value),
-                  })
-                }
-                fullWidth
-              />
-              <FormControl fullWidth>
-                <InputLabel>Orientation</InputLabel>
-                <Select
-                  value={formData.orientation}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      orientation: e.target.value as 'Horizontal' | 'Vertical',
-                    })
-                  }
-                >
-                  <MenuItem value="Horizontal">Horizontal</MenuItem>
-                  <MenuItem value="Vertical">Vertical</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField
-                label="Mounting Height (m)"
-                type="number"
-                value={formData.mountingHeight}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    mountingHeight: Number(e.target.value),
-                  })
-                }
-                fullWidth
-              />
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      status: e.target.value as 'Active' | 'Inactive',
-                    })
-                  }
-                >
-                  <MenuItem value="Active">Active</MenuItem>
-                  <MenuItem value="Inactive">Inactive</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.isActive}
-                    onChange={(e) =>
-                      setFormData({ ...formData, isActive: e.target.checked })
-                    }
-                  />
-                }
-                label="Is Active"
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.maintenanceMode}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        maintenanceMode: e.target.checked,
-                      })
-                    }
-                  />
-                }
-                label="Maintenance Mode"
-              />
-              <TextField
-                label="Description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                fullWidth
-                multiline
-                rows={3}
-                sx={{ gridColumn: '1 / -1' }}
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit} variant="contained">
-              {editingAntenna ? 'Update' : 'Create'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Alert
-          open={alert.open}
-          message={alert.message}
-          severity={alert.severity}
-          onClose={() => setAlert({ ...alert, open: false })}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search antennas..."
         />
       </Box>
-    </MainLayout>
+
+      <DataTable
+        columns={columns}
+        data={antennas}
+        page={page}
+        rowsPerPage={pageSize}
+        totalRows={total}
+        onPageChange={setPage}
+        onRowsPerPageChange={setPageSize}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+
+      <Dialog
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingAntenna ? 'Edit Antenna' : 'Add Antenna'}
+          <IconButton
+            onClick={() => setModalOpen(false)}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            <TextField
+              label="Antenna ID"
+              value={formData.antennaId}
+              onChange={(e) =>
+                setFormData({ ...formData, antennaId: e.target.value })
+              }
+              fullWidth
+            />
+            <TextField
+              label="Antenna Name"
+              value={formData.antennaName}
+              onChange={(e) =>
+                setFormData({ ...formData, antennaName: e.target.value })
+              }
+              fullWidth
+            />
+            <TextField
+              label="Reader IP"
+              value={formData.readerIp}
+              onChange={(e) =>
+                setFormData({ ...formData, readerIp: e.target.value })
+              }
+              fullWidth
+            />
+            <TextField
+              label="Reader Port"
+              type="number"
+              value={formData.readerPort}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  readerPort: Number(e.target.value),
+                })
+              }
+              fullWidth
+            />
+            <FormControl fullWidth>
+              <InputLabel>Role</InputLabel>
+              <Select
+                value={formData.antennaRole}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    antennaRole: e.target.value as
+                      | 'Entry'
+                      | 'Exit'
+                      | 'Internal',
+                  })
+                }
+              >
+                <MenuItem value="Entry">Entry</MenuItem>
+                <MenuItem value="Exit">Exit</MenuItem>
+                <MenuItem value="Internal">Internal</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Location</InputLabel>
+              <Select
+                value={formData.locationId}
+                onChange={(e) =>
+                  setFormData({ ...formData, locationId: e.target.value })
+                }
+              >
+                <MenuItem value="">None</MenuItem>
+                {locations.map((loc) => (
+                  <MenuItem key={loc.id} value={loc.locationId}>
+                    {loc.locationName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Gate ID"
+              value={formData.gateId}
+              onChange={(e) =>
+                setFormData({ ...formData, gateId: e.target.value })
+              }
+              fullWidth
+            />
+            <TextField
+              label="Power Level (dBm)"
+              type="number"
+              value={formData.powerLevel}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  powerLevel: Number(e.target.value),
+                })
+              }
+              fullWidth
+            />
+            <TextField
+              label="Frequency (MHz)"
+              type="number"
+              value={formData.frequency}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  frequency: Number(e.target.value),
+                })
+              }
+              fullWidth
+            />
+            <FormControl fullWidth>
+              <InputLabel>Orientation</InputLabel>
+              <Select
+                value={formData.orientation}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    orientation: e.target.value as 'Horizontal' | 'Vertical',
+                  })
+                }
+              >
+                <MenuItem value="Horizontal">Horizontal</MenuItem>
+                <MenuItem value="Vertical">Vertical</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Mounting Height (m)"
+              type="number"
+              value={formData.mountingHeight}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  mountingHeight: Number(e.target.value),
+                })
+              }
+              fullWidth
+            />
+            <FormControl fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={formData.status}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    status: e.target.value as 'Active' | 'Inactive',
+                  })
+                }
+              >
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Inactive">Inactive</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.isActive}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isActive: e.target.checked })
+                  }
+                />
+              }
+              label="Is Active"
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.maintenanceMode}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      maintenanceMode: e.target.checked,
+                    })
+                  }
+                />
+              }
+              label="Maintenance Mode"
+            />
+            <TextField
+              label="Description"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              fullWidth
+              multiline
+              rows={3}
+              sx={{ gridColumn: '1 / -1' }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setModalOpen(false)}>Cancel</Button>
+          <Button onClick={handleSubmit} variant="contained">
+            {editingAntenna ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Alert
+        open={alert.open}
+        message={alert.message}
+        severity={alert.severity}
+        onClose={() => setAlert({ ...alert, open: false })}
+      />
+    </Box>
   )
 }
-
 export default RFIDAntennaMaster
