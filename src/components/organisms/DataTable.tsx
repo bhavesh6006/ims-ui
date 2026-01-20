@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import {
   Table as MuiTable,
   TableBody,
@@ -52,6 +52,14 @@ const DataTable = <
   onView,
   showActions = true,
 }: DataTableProps<T>) => {
+  // Reset to first page if current page is out of bounds
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(totalRows / rowsPerPage) - 1)
+    if (page > maxPage && totalRows > 0) {
+      onPageChange(0)
+    }
+  }, [totalRows, rowsPerPage, page, onPageChange])
+
   const handleChangePage = (_event: unknown, newPage: number) => {
     onPageChange(newPage)
   }

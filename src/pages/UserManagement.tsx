@@ -46,8 +46,21 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<UserRole[]>([])
   const [mappings, setMappings] = useState<UserRoleMapping[]>([])
-  const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
+
+  // Separate pagination state for each tab
+  const [userPagination, setUserPagination] = useState({
+    page: 0,
+    pageSize: 10,
+  })
+  const [rolePagination, setRolePagination] = useState({
+    page: 0,
+    pageSize: 10,
+  })
+  const [mappingPagination, setMappingPagination] = useState({
+    page: 0,
+    pageSize: 10,
+  })
+
   const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
@@ -114,13 +127,17 @@ const UserManagement: React.FC = () => {
 
   const loadUsers = useCallback(async () => {
     try {
-      const response = await userService.getAll(page + 1, pageSize, search)
+      const response = await userService.getAll(
+        userPagination.page + 1,
+        userPagination.pageSize,
+        search
+      )
       setUsers(response.data)
       setTotal(response.count)
     } catch {
       showAlert('Failed to load users', 'error')
     }
-  }, [page, pageSize, search])
+  }, [userPagination.page, userPagination.pageSize, search])
 
   const loadRoles = useCallback(async () => {
     try {
@@ -315,11 +332,15 @@ const UserManagement: React.FC = () => {
         <DataTable<User>
           columns={userColumns}
           data={users}
-          page={page}
-          rowsPerPage={pageSize}
+          page={userPagination.page}
+          rowsPerPage={userPagination.pageSize}
           totalRows={total}
-          onPageChange={setPage}
-          onRowsPerPageChange={setPageSize}
+          onPageChange={(page) =>
+            setUserPagination({ ...userPagination, page })
+          }
+          onRowsPerPageChange={(pageSize) =>
+            setUserPagination({ page: 0, pageSize })
+          }
           onEdit={handleEditUser}
           onDelete={handleDeleteUser}
         />
@@ -328,12 +349,20 @@ const UserManagement: React.FC = () => {
       <TabPanel value={tabValue} index={1}>
         <DataTable<UserRole>
           columns={roleColumns}
-          data={roles}
-          page={0}
-          rowsPerPage={roles.length}
+          data={roles.slice(
+            rolePagination.page * rolePagination.pageSize,
+            rolePagination.page * rolePagination.pageSize +
+              rolePagination.pageSize
+          )}
+          page={rolePagination.page}
+          rowsPerPage={rolePagination.pageSize}
           totalRows={roles.length}
-          onPageChange={() => {}}
-          onRowsPerPageChange={() => {}}
+          onPageChange={(page) =>
+            setRolePagination({ ...rolePagination, page })
+          }
+          onRowsPerPageChange={(pageSize) =>
+            setRolePagination({ page: 0, pageSize })
+          }
           onEdit={handleEditRole}
           onDelete={handleDeleteRole}
         />
@@ -342,12 +371,20 @@ const UserManagement: React.FC = () => {
       <TabPanel value={tabValue} index={2}>
         <DataTable<UserRoleMapping>
           columns={mappingColumns}
-          data={mappings}
-          page={0}
-          rowsPerPage={mappings.length}
+          data={mappings.slice(
+            mappingPagination.page * mappingPagination.pageSize,
+            mappingPagination.page * mappingPagination.pageSize +
+              mappingPagination.pageSize
+          )}
+          page={mappingPagination.page}
+          rowsPerPage={mappingPagination.pageSize}
           totalRows={mappings.length}
-          onPageChange={() => {}}
-          onRowsPerPageChange={() => {}}
+          onPageChange={(page) =>
+            setMappingPagination({ ...mappingPagination, page })
+          }
+          onRowsPerPageChange={(pageSize) =>
+            setMappingPagination({ page: 0, pageSize })
+          }
           onEdit={handleEditMapping}
           onDelete={handleDeleteMapping}
         />
