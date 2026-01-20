@@ -102,10 +102,10 @@ export const storeLocationService = {
     return response.data
   },
 
-  // Get active store locations
-  getActive: async () => {
+  // Get ACTIVE store locations
+  getACTIVE: async () => {
     const response = await api.get<ApiResponse<StoreLocation[]>>(
-      '/store-locations/active'
+      '/store-locations/ACTIVE'
     )
     return response.data
   },

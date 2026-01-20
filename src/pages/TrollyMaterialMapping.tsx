@@ -45,7 +45,7 @@ const TrollyMaterialMapping: React.FC = () => {
     effectiveFrom: '',
     effectiveTo: '',
     notes: '',
-    status: 'Active' as 'Active' | 'Inactive',
+    status: 'ACTIVE' as string,
   })
 
   const columns: Column[] = [
@@ -107,7 +107,7 @@ const TrollyMaterialMapping: React.FC = () => {
       effectiveFrom: new Date().toISOString().split('T')[0],
       effectiveTo: '',
       notes: '',
-      status: 'Active',
+      status: 'ACTIVE',
     })
     setModalOpen(true)
   }
@@ -301,12 +301,12 @@ const TrollyMaterialMapping: React.FC = () => {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    status: e.target.value as 'Active' | 'Inactive',
+                    status: e.target.value as string,
                   })
                 }
               >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="ACTIVE">ACTIVE</MenuItem>
+                <MenuItem value="INACTIVE">INACTIVE</MenuItem>
               </Select>
             </FormControl>
             <TextField

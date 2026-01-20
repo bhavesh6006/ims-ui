@@ -26,7 +26,7 @@ import type { Trolly, WorkOrder } from '../types'
 const steps = ['Scan Trolley', 'Select Work Order', 'Loading Type', 'Confirm']
 
 const OperatorLoading: React.FC = () => {
-  const [activeStep, setActiveStep] = useState(0)
+  const [ACTIVEStep, setACTIVEStep] = useState(0)
   const [trolleyCode, setTrolleyCode] = useState('')
   const [scannedTrolley, setScannedTrolley] = useState<Trolly | null>(null)
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
@@ -56,10 +56,10 @@ const OperatorLoading: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    if (activeStep === 1) {
+    if (ACTIVEStep === 1) {
       loadWorkOrders()
     }
-  }, [activeStep, loadWorkOrders])
+  }, [ACTIVEStep, loadWorkOrders])
 
   useEffect(() => {
     if (selectedWO) {
@@ -81,18 +81,18 @@ const OperatorLoading: React.FC = () => {
       const response = await trollyService.scan(trolleyCode)
       setScannedTrolley(response.data || null)
       showAlert('Trolley scanned successfully', 'success')
-      setActiveStep(1)
+      setACTIVEStep(1)
     } catch {
       showAlert('Trolley not found', 'error')
     }
   }
 
   const handleNext = () => {
-    if (activeStep === 1 && !selectedWO) {
+    if (ACTIVEStep === 1 && !selectedWO) {
       showAlert('Please select a work order', 'error')
       return
     }
-    if (activeStep === 2) {
+    if (ACTIVEStep === 2) {
       if (loadingType === 'partial' && partialQuantity <= 0) {
         showAlert('Please enter a valid quantity', 'error')
         return
@@ -106,11 +106,11 @@ const OperatorLoading: React.FC = () => {
         return
       }
     }
-    setActiveStep((prev) => prev + 1)
+    setACTIVEStep((prev) => prev + 1)
   }
 
   const handleBack = () => {
-    setActiveStep((prev) => prev - 1)
+    setACTIVEStep((prev) => prev - 1)
   }
 
   const handleSubmit = async () => {
@@ -139,7 +139,7 @@ const OperatorLoading: React.FC = () => {
 
       // Reset form
       setTimeout(() => {
-        setActiveStep(0)
+        setACTIVEStep(0)
         setTrolleyCode('')
         setScannedTrolley(null)
         setSelectedWO('')
@@ -373,7 +373,7 @@ const OperatorLoading: React.FC = () => {
       </Typography>
 
       <Paper sx={{ p: 3, mt: 3 }}>
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+        <Stepper ACTIVEStep={ACTIVEStep} sx={{ mb: 4 }}>
           {steps.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
@@ -381,14 +381,14 @@ const OperatorLoading: React.FC = () => {
           ))}
         </Stepper>
 
-        <Box sx={{ minHeight: 300 }}>{renderStepContent(activeStep)}</Box>
+        <Box sx={{ minHeight: 300 }}>{renderStepContent(ACTIVEStep)}</Box>
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-          <Button disabled={activeStep === 0} onClick={handleBack}>
+          <Button disabled={ACTIVEStep === 0} onClick={handleBack}>
             Back
           </Button>
           <Box sx={{ display: 'flex', gap: 2 }}>
-            {activeStep === steps.length - 1 ? (
+            {ACTIVEStep === steps.length - 1 ? (
               <Button variant="contained" onClick={handleSubmit}>
                 Submit
               </Button>

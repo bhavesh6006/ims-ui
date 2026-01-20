@@ -17,6 +17,7 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import CategoryIcon from '@mui/icons-material/Category'
 import AssessmentIcon from '@mui/icons-material/Assessment'
 import SettingsIcon from '@mui/icons-material/Settings'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const drawerWidth = 240
@@ -46,13 +47,18 @@ const menuItems: MenuItem[] = [
   },
   {
     text: 'Store Location',
-    icon: <PeopleIcon />,
+    icon: <LocationOnIcon />,
     path: '/store-location-master',
   },
   {
     text: 'RFID Antenna',
     icon: <SettingsIcon />,
     path: '/rfid-antenna-master',
+  },
+  {
+    text: 'User Management',
+    icon: <PeopleIcon />,
+    path: '/user-management',
   },
   {
     text: 'Operator Loading',

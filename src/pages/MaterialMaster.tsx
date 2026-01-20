@@ -22,7 +22,20 @@ import CloseIcon from '@mui/icons-material/Close'
 import { DataTable, type Column } from '../components/organisms'
 import { SearchBar, Alert } from '../components/molecules'
 import { materialService } from '../services'
-import type { Material } from '../types'
+
+type Material = {
+  material_id: string
+  material_code: string
+  material_name: string
+  material_type: string
+  length_mm: string
+  width_mm: string
+  height_mm: string
+  weight_kg: string
+  status: string
+  createdAt: string
+  updatedAt: string
+}
 
 const POSITIONS = [
   'Left',
@@ -50,12 +63,7 @@ const MaterialMaster: React.FC = () => {
   const [formData, setFormData] = useState({
     materialId: '',
     materialName: '',
-    materialType: 'Plastic' as
-      | 'Plastic'
-      | 'Metal'
-      | 'Rubber'
-      | 'Composite'
-      | 'Other',
+    materialType: 'Plastic' as string,
     length: 0,
     width: 0,
     height: 0,
@@ -64,32 +72,31 @@ const MaterialMaster: React.FC = () => {
     weightUnit: 'kg' as 'kg' | 'g',
     allowedPositions: [] as string[],
     description: '',
-    status: 'Active' as 'Active' | 'Inactive',
+    status: 'ACTIVE' as string,
   })
 
   const columns: Column[] = [
-    { id: 'materialId', label: 'Material ID' },
-    { id: 'materialName', label: 'Name' },
-    { id: 'materialType', label: 'Type' },
+    { id: 'material_code', label: 'Material Code' },
+    { id: 'material_name', label: 'Name' },
+    { id: 'material_type', label: 'Type' },
     {
-      id: 'dimensions',
-      label: 'Dimensions',
-      format: (dim: {
-        length: number
-        width: number
-        height: number
-        unit: string
-      }) => `${dim.length}×${dim.width}×${dim.height} ${dim.unit}`,
+      id: 'length_mm', // Use an existing field
+      label: 'Dimensions (mm)',
+      format: (value: unknown, row?: unknown) => {
+        const material = row as Material
+        if (
+          material &&
+          material.length_mm &&
+          material.width_mm &&
+          material.height_mm
+        ) {
+          return `${material.length_mm}×${material.width_mm}×${material.height_mm}`
+        }
+        return 'N/A'
+      },
     },
-    {
-      id: 'allowedPositions',
-      label: 'Positions',
-      format: (positions: string[]) => positions.join(', '),
-    },
-    {
-      id: 'status',
-      label: 'Status',
-    },
+    { id: 'weight_kg', label: 'Weight (kg)' },
+    { id: 'status', label: 'Status' },
   ]
 
   const showAlert = (message: string, severity: 'success' | 'error') => {
@@ -99,8 +106,29 @@ const MaterialMaster: React.FC = () => {
   const loadMaterials = useCallback(async () => {
     try {
       const response = await materialService.getAll(page + 1, pageSize, search)
-      setMaterials(response.data)
-      setTotal(response.total)
+
+      // Handle different response structures
+      const data = response.data || response
+      const totalCount = response.count || data.length
+
+      const mappedMaterials = (Array.isArray(data) ? data : []).map(
+        (item: Material) => ({
+          material_id: item.material_id,
+          material_code: item.material_code,
+          material_name: item.material_name,
+          material_type: item.material_type,
+          length_mm: parseFloat(item.length_mm).toFixed(2),
+          width_mm: parseFloat(item.width_mm).toFixed(2),
+          height_mm: parseFloat(item.height_mm).toFixed(2),
+          weight_kg: parseFloat(item.weight_kg).toFixed(3),
+          status: item.status,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+        })
+      )
+
+      setMaterials(mappedMaterials)
+      setTotal(totalCount)
     } catch {
       showAlert('Failed to load materials', 'error')
     }
@@ -124,7 +152,7 @@ const MaterialMaster: React.FC = () => {
       weightUnit: 'kg',
       allowedPositions: [],
       description: '',
-      status: 'Active',
+      status: 'ACTIVE',
     })
     setModalOpen(true)
   }
@@ -132,26 +160,26 @@ const MaterialMaster: React.FC = () => {
   const handleEdit = (material: Material) => {
     setEditingMaterial(material)
     setFormData({
-      materialId: material.materialId,
-      materialName: material.materialName,
-      materialType: material.materialType,
-      length: material.dimensions.length,
-      width: material.dimensions.width,
-      height: material.dimensions.height,
-      weight: material.dimensions.weight || 0,
-      unit: material.dimensions.unit,
-      weightUnit: material.dimensions.weightUnit || 'kg',
-      allowedPositions: material.allowedPositions || [],
-      description: material.description || '',
+      materialId: material.material_id,
+      materialName: material.material_name,
+      materialType: (material.material_type as string) || 'Other', // Default to 'Other' if the type is not recognized
+      length: parseFloat(material.length_mm),
+      width: parseFloat(material.width_mm),
+      height: parseFloat(material.height_mm),
+      weight: parseFloat(material.weight_kg),
+      unit: 'mm',
+      weightUnit: 'kg',
+      allowedPositions: [],
+      description: '',
       status: material.status,
     })
     setModalOpen(true)
   }
 
   const handleDelete = async (material: Material) => {
-    if (window.confirm(`Delete material ${material.materialId}?`)) {
+    if (window.confirm(`Delete material ${material.material_id}?`)) {
       try {
-        await materialService.delete(material.id)
+        await materialService.delete(material.material_id)
         showAlert('Material deleted', 'success')
         loadMaterials()
       } catch {
@@ -163,30 +191,19 @@ const MaterialMaster: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const payload = {
-        materialId: formData.materialId,
-        materialName: formData.materialName,
-        materialType: formData.materialType,
-        dimensions: {
-          length: formData.length,
-          width: formData.width,
-          height: formData.height,
-          weight: formData.weight,
-          unit: formData.unit,
-          weightUnit: formData.weightUnit,
-        },
-        allowedPositions: formData.allowedPositions as Array<
-          | 'Left'
-          | 'Right'
-          | 'Left Upper'
-          | 'Left Lower'
-          | 'Right Upper'
-          | 'Right Lower'
-        >,
-        status: formData.status,
+        material_id: formData.materialId,
+        material_code: formData.materialId,
+        material_name: formData.materialName,
+        material_type: formData.materialType.toUpperCase(),
+        length_mm: formData.length.toString(),
+        width_mm: formData.width.toString(),
+        height_mm: formData.height.toString(),
+        weight_kg: formData.weight.toString(),
+        status: formData.status.toUpperCase(),
       }
 
       if (editingMaterial) {
-        await materialService.update(editingMaterial.id, payload)
+        await materialService.update(editingMaterial.material_id, payload)
         showAlert('Material updated', 'success')
       } else {
         await materialService.create(payload)
@@ -276,12 +293,7 @@ const MaterialMaster: React.FC = () => {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    materialType: e.target.value as
-                      | 'Plastic'
-                      | 'Metal'
-                      | 'Rubber'
-                      | 'Composite'
-                      | 'Other',
+                    materialType: e.target.value as string,
                   })
                 }
               >
@@ -388,12 +400,12 @@ const MaterialMaster: React.FC = () => {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    status: e.target.value as 'Active' | 'Inactive',
+                    status: e.target.value as string,
                   })
                 }
               >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="ACTIVE">ACTIVE</MenuItem>
+                <MenuItem value="INACTIVE">INACTIVE</MenuItem>
               </Select>
             </FormControl>
             <TextField

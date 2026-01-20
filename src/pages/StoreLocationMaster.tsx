@@ -49,7 +49,7 @@ const StoreLocationMaster: React.FC = () => {
     areaUnit: 'sqm' as 'sqft' | 'sqm',
     associatedAntennaIds: [] as string[],
     description: '',
-    status: 'Active' as 'Active' | 'Inactive',
+    status: 'ACTIVE' as string,
   })
 
   const columns: Column[] = [
@@ -101,7 +101,7 @@ const StoreLocationMaster: React.FC = () => {
       areaUnit: 'sqm',
       associatedAntennaIds: [],
       description: '',
-      status: 'Active',
+      status: 'ACTIVE',
     })
     setModalOpen(true)
   }
@@ -331,12 +331,12 @@ const StoreLocationMaster: React.FC = () => {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    status: e.target.value as 'Active' | 'Inactive',
+                    status: e.target.value as string,
                   })
                 }
               >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="ACTIVE">ACTIVE</MenuItem>
+                <MenuItem value="INACTIVE">INACTIVE</MenuItem>
               </Select>
             </FormControl>
             <TextField

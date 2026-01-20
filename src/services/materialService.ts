@@ -1,5 +1,5 @@
 import api from './api'
-import type { Material, PaginatedResponse, ApiResponse } from '../types'
+import type { Material, PaginatedResponse } from '../types'
 
 // Material Service - Manage materials
 export const materialService = {
@@ -26,16 +26,10 @@ export const materialService = {
     return response.data
   },
 
-  // Get material by Material ID (unique identifier)
-  getByMaterialId: async (materialId: string) => {
-    const response = await api.get<ApiResponse<Material>>(
-      `/materials/material-id/${materialId}`
-    )
-    return response.data
-  },
-
   // Create new material
-  create: async (data: Omit<Material, 'id' | 'createdAt' | 'updatedAt'>) => {
+  create: async (
+    data: Omit<Material, 'material_id' | 'createdAt' | 'updatedAt'>
+  ) => {
     const response = await api.post<Material>('/materials', data)
     return response.data
   },
@@ -46,37 +40,9 @@ export const materialService = {
     return response.data
   },
 
-  // Delete material (soft delete - sets status to Inactive)
+  // Delete material
   delete: async (id: string) => {
     await api.delete(`/materials/${id}`)
-  },
-
-  // Get material types
-  getMaterialTypes: async () => {
-    const response = await api.get<ApiResponse<string[]>>('/materials/types')
-    return response.data
-  },
-
-  // Get materials by type
-  getByType: async (materialType: string) => {
-    const response = await api.get<ApiResponse<Material[]>>(
-      `/materials/type/${materialType}`
-    )
-    return response.data
-  },
-
-  // Get active materials
-  getActive: async () => {
-    const response = await api.get<ApiResponse<Material[]>>('/materials/active')
-    return response.data
-  },
-
-  // Get allowed positions
-  getAllowedPositions: async () => {
-    const response = await api.get<ApiResponse<string[]>>(
-      '/materials/positions'
-    )
-    return response.data
   },
 }
 

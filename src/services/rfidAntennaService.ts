@@ -59,7 +59,7 @@ export const rfidAntennaService = {
   },
 
   // Get antennas by status
-  getByStatus: async (status: 'Active' | 'Inactive' | 'Maintenance') => {
+  getByStatus: async (status: string | 'Maintenance') => {
     const response = await api.get<ApiResponse<RFIDAntenna[]>>(
       `/rfid-antennas/status/${status}`
     )
@@ -100,16 +100,16 @@ export const rfidAntennaService = {
     const response = await api.patch<ApiResponse<RFIDAntenna>>(
       `/rfid-antennas/${id}/maintenance`,
       {
-        status: inMaintenance ? 'Maintenance' : 'Active',
+        status: inMaintenance ? 'Maintenance' : 'ACTIVE',
       }
     )
     return response.data
   },
 
-  // Get active antennas
-  getActive: async () => {
+  // Get ACTIVE antennas
+  getACTIVE: async () => {
     const response = await api.get<ApiResponse<RFIDAntenna[]>>(
-      '/rfid-antennas/active'
+      '/rfid-antennas/ACTIVE'
     )
     return response.data
   },

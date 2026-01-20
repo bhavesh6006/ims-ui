@@ -74,7 +74,7 @@ const MovementTracking: React.FC = () => {
     exits: movements.filter((m) => m.movementType === 'Exit').length,
     transfers: movements.filter((m) => m.movementType === 'Internal Transfer')
       .length,
-    activeTrollies: new Set(movements.map((m) => m.trollyId)).size,
+    ACTIVETrollies: new Set(movements.map((m) => m.trollyId)).size,
   }
 
   return (
@@ -125,9 +125,9 @@ const MovementTracking: React.FC = () => {
         </Paper>
         <Paper sx={{ p: 2 }}>
           <Typography color="text.secondary" variant="body2">
-            Active Trollies
+            ACTIVE Trollies
           </Typography>
-          <Typography variant="h4">{stats.activeTrollies}</Typography>
+          <Typography variant="h4">{stats.ACTIVETrollies}</Typography>
         </Paper>
       </Box>
 

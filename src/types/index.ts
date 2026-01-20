@@ -4,7 +4,7 @@
 export interface Trolly extends Record<string, unknown> {
   trolley_id: string
   trolley_code: string
-  trolley_type: 'HEAVY_DUTY' | 'LIGHT_DUTY' | 'MEDIUM_DUTY' | 'STANDARD'
+  trolley_type: string
   barcode: string
   qr_code: string
   length_mm: string
@@ -12,7 +12,7 @@ export interface Trolly extends Record<string, unknown> {
   height_mm: string
   volume_mm3: string
   notes: string
-  status: 'ACTIVE' | 'INACTIVE'
+  status: string
   createdAt: string
   updatedAt: string
 }
@@ -23,7 +23,7 @@ export interface Material {
   id: string
   materialId: string // Unique Material ID
   materialName: string
-  materialType: 'Plastic' | 'Metal' | 'Rubber' | 'Composite' | 'Other'
+  materialType: string
   dimensions: {
     length: number
     width: number
@@ -41,7 +41,7 @@ export interface Material {
     | 'Right Lower'
   >
   description?: string
-  status: 'Active' | 'Inactive'
+  status: string
   createdAt: string
   updatedAt: string
 }
@@ -59,7 +59,7 @@ export interface TrollyMaterialMapping {
   effectiveTo?: string
   effectiveDate: string
   notes?: string
-  status: 'Active' | 'Inactive'
+  status: string
   version: number
   createdAt: string
   updatedAt: string
@@ -92,7 +92,7 @@ export interface StoreLocation {
   rfidAntennas?: string[] // Array of antenna IDs
   associatedAntennaIds?: string[]
   bleGateways?: string[] // Array of BLE gateway IDs
-  status: 'Active' | 'Inactive'
+  status: string
   remarks?: string
   description?: string
   createdAt: string
@@ -130,9 +130,9 @@ export interface RFIDAntenna {
   storeLocationId?: string
   locationId?: string
   gateId?: string
-  isActive?: boolean
+  isACTIVE?: boolean
   maintenanceMode?: boolean
-  status: 'Active' | 'Inactive' | 'Maintenance'
+  status: string | 'Maintenance'
   remarks?: string
   description?: string
   createdAt: string
@@ -202,7 +202,7 @@ export interface User {
   fullName: string
   role: 'Admin' | 'Store Manager' | 'Storekeeper' | 'Operator'
   ldapId?: string
-  status: 'Active' | 'Inactive'
+  status: string
   createdAt: string
   updatedAt: string
 }
@@ -217,7 +217,7 @@ export interface ApiResponse<T> {
 
 export interface PaginatedResponse<T> {
   data: T[]
-  total: number
+  count: number
   page: number
   pageSize: number
   totalPages: number

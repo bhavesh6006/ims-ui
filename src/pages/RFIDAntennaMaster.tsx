@@ -50,10 +50,10 @@ const RFIDAntennaMaster: React.FC = () => {
     frequency: 915,
     orientation: 'Horizontal' as 'Horizontal' | 'Vertical',
     mountingHeight: 0,
-    isActive: true,
+    isACTIVE: true,
     maintenanceMode: false,
     description: '',
-    status: 'Active' as 'Active' | 'Inactive',
+    status: 'ACTIVE' as string,
   })
 
   const columns: Column[] = [
@@ -66,8 +66,8 @@ const RFIDAntennaMaster: React.FC = () => {
     },
     { id: 'locationId', label: 'Location' },
     {
-      id: 'isActive',
-      label: 'Active',
+      id: 'isACTIVE',
+      label: 'ACTIVE',
       format: (value: boolean) => (value ? 'Yes' : 'No'),
     },
     { id: 'status', label: 'Status' },
@@ -119,10 +119,10 @@ const RFIDAntennaMaster: React.FC = () => {
       frequency: 915,
       orientation: 'Horizontal',
       mountingHeight: 0,
-      isActive: true,
+      isACTIVE: true,
       maintenanceMode: false,
       description: '',
-      status: 'Active',
+      status: 'ACTIVE',
     })
     setModalOpen(true)
   }
@@ -147,10 +147,10 @@ const RFIDAntennaMaster: React.FC = () => {
           ? 'Horizontal'
           : 'Vertical',
       mountingHeight: 0,
-      isActive: antenna.status === 'Active',
+      isACTIVE: antenna.status === 'ACTIVE',
       maintenanceMode: antenna.status === 'Maintenance',
       description: antenna.remarks || '',
-      status: antenna.status === 'Maintenance' ? 'Inactive' : antenna.status,
+      status: antenna.status === 'Maintenance' ? 'INACTIVE' : antenna.status,
     })
     setModalOpen(true)
   }
@@ -393,24 +393,24 @@ const RFIDAntennaMaster: React.FC = () => {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    status: e.target.value as 'Active' | 'Inactive',
+                    status: e.target.value as string,
                   })
                 }
               >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="ACTIVE">ACTIVE</MenuItem>
+                <MenuItem value="INACTIVE">INACTIVE</MenuItem>
               </Select>
             </FormControl>
             <FormControlLabel
               control={
                 <Switch
-                  checked={formData.isActive}
+                  checked={formData.isACTIVE}
                   onChange={(e) =>
-                    setFormData({ ...formData, isActive: e.target.checked })
+                    setFormData({ ...formData, isACTIVE: e.target.checked })
                   }
                 />
               }
-              label="Is Active"
+              label="Is ACTIVE"
             />
             <FormControlLabel
               control={

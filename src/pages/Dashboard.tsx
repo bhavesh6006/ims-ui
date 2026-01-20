@@ -10,7 +10,7 @@ import {
 const Dashboard: React.FC = () => {
   const stats = [
     {
-      title: 'Active Trollies',
+      title: 'ACTIVE Trollies',
       value: '45',
       icon: <TrollyIcon fontSize="large" />,
       color: '#1976d2',

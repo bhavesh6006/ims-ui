@@ -37,11 +37,7 @@ const TrollyMaster: React.FC = () => {
 
   const [formData, setFormData] = useState({
     trollyCode: '',
-    trollyType: 'STANDARD' as
-      | 'HEAVY_DUTY'
-      | 'LIGHT_DUTY'
-      | 'MEDIUM_DUTY'
-      | 'STANDARD',
+    trollyType: 'STANDARD' as string,
     barcode: '',
     qrCode: '',
     lengthMm: '',
@@ -49,7 +45,7 @@ const TrollyMaster: React.FC = () => {
     heightMm: '',
     volumeMm3: '',
     notes: '',
-    status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
+    status: 'ACTIVE' as string,
   })
 
   const columns: Column[] = [
@@ -91,7 +87,7 @@ const TrollyMaster: React.FC = () => {
     try {
       const response = await trollyService.getAll(page + 1, pageSize, search)
       setTrollies(response.data)
-      setTotal(response.total)
+      setTotal(response.count)
     } catch {
       showAlert('Failed to load trollies', 'error')
     }
@@ -238,11 +234,7 @@ const TrollyMaster: React.FC = () => {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    trollyType: e.target.value as
-                      | 'HEAVY_DUTY'
-                      | 'LIGHT_DUTY'
-                      | 'MEDIUM_DUTY'
-                      | 'STANDARD',
+                    trollyType: e.target.value as string,
                   })
                 }
               >
@@ -314,12 +306,12 @@ const TrollyMaster: React.FC = () => {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    status: e.target.value as 'ACTIVE' | 'INACTIVE',
+                    status: e.target.value as string,
                   })
                 }
               >
-                <MenuItem value="ACTIVE">Active</MenuItem>
-                <MenuItem value="INACTIVE">Inactive</MenuItem>
+                <MenuItem value="ACTIVE">ACTIVE</MenuItem>
+                <MenuItem value="INACTIVE">INACTIVE</MenuItem>
               </Select>
             </FormControl>
             <TextField
