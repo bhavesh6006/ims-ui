@@ -36,38 +36,50 @@ const TrollyMaster: React.FC = () => {
   })
 
   const [formData, setFormData] = useState({
-    trollyId: '',
-    trollyType: 'Bin' as 'Bin' | 'Rack' | 'Pallet' | 'Cage',
+    trollyCode: '',
+    trollyType: 'STANDARD' as
+      | 'HEAVY_DUTY'
+      | 'LIGHT_DUTY'
+      | 'MEDIUM_DUTY'
+      | 'STANDARD',
     barcode: '',
     qrCode: '',
-    length: 0,
-    width: 0,
-    height: 0,
-    volume: 0,
-    unit: 'cm' as 'mm' | 'cm' | 'm',
+    lengthMm: '',
+    widthMm: '',
+    heightMm: '',
+    volumeMm3: '',
     notes: '',
-    status: 'Active' as 'Active' | 'Inactive',
+    status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
   })
 
   const columns: Column[] = [
-    { id: 'trollyId', label: 'Trolly ID' },
-    { id: 'trollyType', label: 'Type' },
+    { id: 'trolley_code', label: 'Trolley Code' },
+    { id: 'trolley_type', label: 'Type' },
     { id: 'barcode', label: 'Barcode' },
-    { id: 'qrCode', label: 'QR Code' },
+    { id: 'qr_code', label: 'QR Code' },
     {
       id: 'dimensions',
-      label: 'Dimensions',
-      format: (dim: {
-        length: number
-        width: number
-        height: number
-        unit: string
-      }) => `${dim.length}×${dim.width}×${dim.height} ${dim.unit}`,
+      label: 'Dimensions (L×W×H mm)',
+      format: (value: unknown, row?: Record<string, unknown>) => {
+        const trolly = row as Trolly | undefined
+        if (trolly) {
+          return `${trolly.length_mm}×${trolly.width_mm}×${trolly.height_mm}`
+        }
+        return '-'
+      },
+    },
+    {
+      id: 'volume_mm3',
+      label: 'Volume (mm³)',
+      format: (value: unknown) => {
+        const volume = value as string
+        return Number(volume).toLocaleString()
+      },
     },
     {
       id: 'status',
       label: 'Status',
-      format: (status: string) => status,
+      format: (value: unknown) => String(value),
     },
   ]
 
@@ -92,17 +104,16 @@ const TrollyMaster: React.FC = () => {
   const handleAdd = () => {
     setEditingTrolly(null)
     setFormData({
-      trollyId: '',
-      trollyType: 'Bin',
+      trollyCode: '',
+      trollyType: 'STANDARD',
       barcode: '',
       qrCode: '',
-      length: 0,
-      width: 0,
-      height: 0,
-      volume: 0,
-      unit: 'cm',
+      lengthMm: '',
+      widthMm: '',
+      heightMm: '',
+      volumeMm3: '',
       notes: '',
-      status: 'Active',
+      status: 'ACTIVE',
     })
     setModalOpen(true)
   }
@@ -110,15 +121,14 @@ const TrollyMaster: React.FC = () => {
   const handleEdit = (trolly: Trolly) => {
     setEditingTrolly(trolly)
     setFormData({
-      trollyId: trolly.trollyId,
-      trollyType: trolly.trollyType === 'Other' ? 'Bin' : trolly.trollyType,
+      trollyCode: trolly.trolley_code,
+      trollyType: trolly.trolley_type,
       barcode: trolly.barcode || '',
-      qrCode: trolly.qrCode || '',
-      length: trolly.dimensions.length,
-      width: trolly.dimensions.width,
-      height: trolly.dimensions.height,
-      volume: trolly.dimensions.volume || 0,
-      unit: trolly.dimensions.unit,
+      qrCode: trolly.qr_code || '',
+      lengthMm: trolly.length_mm,
+      widthMm: trolly.width_mm,
+      heightMm: trolly.height_mm,
+      volumeMm3: trolly.volume_mm3,
       notes: trolly.notes || '',
       status: trolly.status,
     })
@@ -126,9 +136,9 @@ const TrollyMaster: React.FC = () => {
   }
 
   const handleDelete = async (trolly: Trolly) => {
-    if (window.confirm(`Delete trolly ${trolly.trollyId}?`)) {
+    if (window.confirm(`Delete trolly ${trolly.trolley_code}?`)) {
       try {
-        await trollyService.delete(trolly.id)
+        await trollyService.delete(trolly.trolley_id)
         showAlert('Trolly deleted', 'success')
         loadTrollies()
       } catch {
@@ -140,23 +150,20 @@ const TrollyMaster: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const payload = {
-        trollyId: formData.trollyId,
-        trollyType: formData.trollyType,
+        trolley_code: formData.trollyCode,
+        trolley_type: formData.trollyType,
         barcode: formData.barcode,
-        qrCode: formData.qrCode,
-        dimensions: {
-          length: formData.length,
-          width: formData.width,
-          height: formData.height,
-          volume: formData.volume,
-          unit: formData.unit,
-        },
+        qr_code: formData.qrCode,
+        length_mm: formData.lengthMm,
+        width_mm: formData.widthMm,
+        height_mm: formData.heightMm,
+        volume_mm3: formData.volumeMm3,
         notes: formData.notes,
         status: formData.status,
       }
 
       if (editingTrolly) {
-        await trollyService.update(editingTrolly.id, payload)
+        await trollyService.update(editingTrolly.trolley_id, payload)
         showAlert('Trolly updated', 'success')
       } else {
         await trollyService.create(payload)
@@ -186,7 +193,7 @@ const TrollyMaster: React.FC = () => {
         />
       </Box>
 
-      <DataTable
+      <DataTable<Trolly>
         columns={columns}
         data={trollies}
         page={page}
@@ -216,12 +223,13 @@ const TrollyMaster: React.FC = () => {
         <DialogContent dividers>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
             <TextField
-              label="Trolly ID"
-              value={formData.trollyId}
+              label="Trolley Code"
+              value={formData.trollyCode}
               onChange={(e) =>
-                setFormData({ ...formData, trollyId: e.target.value })
+                setFormData({ ...formData, trollyCode: e.target.value })
               }
               fullWidth
+              required
             />
             <FormControl fullWidth>
               <InputLabel>Type</InputLabel>
@@ -231,17 +239,17 @@ const TrollyMaster: React.FC = () => {
                   setFormData({
                     ...formData,
                     trollyType: e.target.value as
-                      | 'Bin'
-                      | 'Rack'
-                      | 'Pallet'
-                      | 'Cage',
+                      | 'HEAVY_DUTY'
+                      | 'LIGHT_DUTY'
+                      | 'MEDIUM_DUTY'
+                      | 'STANDARD',
                   })
                 }
               >
-                <MenuItem value="Bin">Bin</MenuItem>
-                <MenuItem value="Rack">Rack</MenuItem>
-                <MenuItem value="Pallet">Pallet</MenuItem>
-                <MenuItem value="Cage">Cage</MenuItem>
+                <MenuItem value="STANDARD">Standard</MenuItem>
+                <MenuItem value="LIGHT_DUTY">Light Duty</MenuItem>
+                <MenuItem value="MEDIUM_DUTY">Medium Duty</MenuItem>
+                <MenuItem value="HEAVY_DUTY">Heavy Duty</MenuItem>
               </Select>
             </FormControl>
             <TextField
@@ -261,54 +269,41 @@ const TrollyMaster: React.FC = () => {
               fullWidth
             />
             <TextField
-              label="Length"
+              label="Length (mm)"
               type="number"
-              value={formData.length}
+              value={formData.lengthMm}
               onChange={(e) =>
-                setFormData({ ...formData, length: Number(e.target.value) })
+                setFormData({ ...formData, lengthMm: e.target.value })
               }
               fullWidth
+              required
             />
             <TextField
-              label="Width"
+              label="Width (mm)"
               type="number"
-              value={formData.width}
+              value={formData.widthMm}
               onChange={(e) =>
-                setFormData({ ...formData, width: Number(e.target.value) })
+                setFormData({ ...formData, widthMm: e.target.value })
               }
               fullWidth
+              required
             />
             <TextField
-              label="Height"
+              label="Height (mm)"
               type="number"
-              value={formData.height}
+              value={formData.heightMm}
               onChange={(e) =>
-                setFormData({ ...formData, height: Number(e.target.value) })
+                setFormData({ ...formData, heightMm: e.target.value })
               }
               fullWidth
+              required
             />
-            <FormControl fullWidth>
-              <InputLabel>Unit</InputLabel>
-              <Select
-                value={formData.unit}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    unit: e.target.value as 'mm' | 'cm' | 'm',
-                  })
-                }
-              >
-                <MenuItem value="mm">mm</MenuItem>
-                <MenuItem value="cm">cm</MenuItem>
-                <MenuItem value="m">m</MenuItem>
-              </Select>
-            </FormControl>
             <TextField
-              label="Volume"
+              label="Volume (mm³)"
               type="number"
-              value={formData.volume}
+              value={formData.volumeMm3}
               onChange={(e) =>
-                setFormData({ ...formData, volume: Number(e.target.value) })
+                setFormData({ ...formData, volumeMm3: e.target.value })
               }
               fullWidth
             />
@@ -319,12 +314,12 @@ const TrollyMaster: React.FC = () => {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    status: e.target.value as 'Active' | 'Inactive',
+                    status: e.target.value as 'ACTIVE' | 'INACTIVE',
                   })
                 }
               >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="ACTIVE">Active</MenuItem>
+                <MenuItem value="INACTIVE">Inactive</MenuItem>
               </Select>
             </FormControl>
             <TextField

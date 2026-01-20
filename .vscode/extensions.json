@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "Vue.volar",
+    "msjsdiag.debugger-for-chrome",
+    "ms-vscode.vscode-typescript-next"
+  ]
+}

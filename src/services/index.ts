@@ -1,3 +1,4 @@
+export { default as api } from './api'
 export { trollyService } from './trollyService'
 export { materialService } from './materialService'
 export { mappingService } from './mappingService'

@@ -1,27 +1,25 @@
 // Core Entity Types for IMS (Inventory Management System)
 
 // Trolly / Container Master
-export interface Trolly {
-  id: string
-  trollyId: string // Unique Trolly ID
-  trollyType: 'Bin' | 'Rack' | 'Pallet' | 'Cage' | 'Other'
-  barcode?: string
-  qrCode?: string
-  dimensions: {
-    length: number
-    width: number
-    height: number
-    volume?: number
-    unit: 'mm' | 'cm' | 'm'
-  }
-  notes?: string
-  status: 'Active' | 'Inactive'
+export interface Trolly extends Record<string, unknown> {
+  trolley_id: string
+  trolley_code: string
+  trolley_type: 'HEAVY_DUTY' | 'LIGHT_DUTY' | 'MEDIUM_DUTY' | 'STANDARD'
+  barcode: string
+  qr_code: string
+  length_mm: string
+  width_mm: string
+  height_mm: string
+  volume_mm3: string
+  notes: string
+  status: 'ACTIVE' | 'INACTIVE'
   createdAt: string
   updatedAt: string
 }
 
 // Material Master
 export interface Material {
+  [key: string]: unknown
   id: string
   materialId: string // Unique Material ID
   materialName: string
@@ -34,7 +32,7 @@ export interface Material {
     unit: 'mm' | 'cm' | 'm'
     weightUnit?: 'kg' | 'g'
   }
-  allowedPositions: Array<
+  allowedPositions?: Array<
     | 'Left'
     | 'Right'
     | 'Left Upper'

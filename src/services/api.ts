@@ -1,60 +1,57 @@
 import axios, { type AxiosInstance, type AxiosError } from 'axios'
-import { config } from '../config/environment'
 
-// Create axios instance with base configuration
-const apiClient: AxiosInstance = axios.create({
-  baseURL: config.apiBaseUrl,
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+
+const api: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// Request interceptor
-apiClient.interceptors.request.use(
+// Request interceptor - add auth token
+api.interceptors.request.use(
   (config) => {
-    // Add authentication token if available
-    const token = localStorage.getItem('auth_token')
+    const token =
+      localStorage.getItem('token') || localStorage.getItem('auth_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
-// Response interceptor
-apiClient.interceptors.response.use(
-  (response) => {
-    return response
-  },
+// Response interceptor - handle common errors
+api.interceptors.response.use(
+  (response) => response,
   (error: AxiosError) => {
-    // Handle common errors
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          // Unauthorized - clear token and redirect to login
+          localStorage.removeItem('token')
           localStorage.removeItem('auth_token')
           window.location.href = '/login'
           break
         case 403:
-          // Forbidden
           console.error('Access forbidden')
           break
         case 404:
-          // Not found
           console.error('Resource not found')
           break
         case 500:
-          // Server error
           console.error('Server error')
           break
       }
+    } else if (error.request) {
+      console.error('No response received from server')
+    } else {
+      console.error('Error setting up request:', error.message)
     }
     return Promise.reject(error)
   }
 )
 
-export default apiClient
+export default api

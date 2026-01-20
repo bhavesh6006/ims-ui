@@ -224,7 +224,7 @@ const MaterialMaster: React.FC = () => {
         />
       </Box>
 
-      <DataTable
+      <DataTable<Material>
         columns={columns}
         data={materials}
         page={page}

@@ -20,7 +20,7 @@ export interface Column {
   label: string
   minWidth?: number
   align?: 'left' | 'right' | 'center'
-  format?: (value: unknown) => string
+  format?: (value: unknown, row?: Record<string, unknown>) => string
 }
 
 interface DataTableProps<T = Record<string, unknown>> {
@@ -37,7 +37,9 @@ interface DataTableProps<T = Record<string, unknown>> {
   showActions?: boolean
 }
 
-const DataTable: React.FC<DataTableProps> = ({
+const DataTable = <
+  T extends Record<string, unknown> = Record<string, unknown>,
+>({
   columns,
   data,
   page,
@@ -49,7 +51,7 @@ const DataTable: React.FC<DataTableProps> = ({
   onDelete,
   onView,
   showActions = true,
-}) => {
+}: DataTableProps<T>) => {
   const handleChangePage = (_event: unknown, newPage: number) => {
     onPageChange(newPage)
   }
@@ -86,7 +88,11 @@ const DataTable: React.FC<DataTableProps> = ({
                   const value = row[column.id]
                   return (
                     <TableCell key={column.id} align={column.align}>
-                      {column.format ? column.format(value) : value}
+                      {
+                        (column.format
+                          ? column.format(value, row)
+                          : value) as React.ReactNode
+                      }
                     </TableCell>
                   )
                 })}

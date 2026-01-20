@@ -1,4 +1,4 @@
-import apiClient from './apiClient'
+import api from './api'
 import type {
   TrolleyLoading,
   ApiResponse,
@@ -11,7 +11,7 @@ import type {
 export const loadingService = {
   // Scan trolley (barcode/QR code)
   scanTrolley: async (code: string, codeType: 'barcode' | 'qr') => {
-    const response = await apiClient.post<ApiResponse<Trolly>>(
+    const response = await api.post<ApiResponse<Trolly>>(
       '/loading/scan-trolley',
       {
         code,
@@ -23,7 +23,7 @@ export const loadingService = {
 
   // Get work order list for operator
   getWorkOrders: async () => {
-    const response = await apiClient.get<ApiResponse<WorkOrder[]>>(
+    const response = await api.get<ApiResponse<WorkOrder[]>>(
       '/loading/work-orders'
     )
     return response.data
@@ -31,7 +31,7 @@ export const loadingService = {
 
   // Get work order details (quantity, door types, classification, orientation)
   getWorkOrderDetails: async (workOrderId: string) => {
-    const response = await apiClient.get<ApiResponse<WorkOrder>>(
+    const response = await api.get<ApiResponse<WorkOrder>>(
       `/loading/work-orders/${workOrderId}`
     )
     return response.data
@@ -48,7 +48,7 @@ export const loadingService = {
     operatorId: string
     operatorName: string
   }) => {
-    const response = await apiClient.post<ApiResponse<TrolleyLoading>>(
+    const response = await api.post<ApiResponse<TrolleyLoading>>(
       '/loading/transactions',
       loading
     )
@@ -61,7 +61,7 @@ export const loadingService = {
     workOrderId: string,
     quantity: number
   ) => {
-    const response = await apiClient.post<
+    const response = await api.post<
       ApiResponse<{ valid: boolean; maxCapacity: number; message?: string }>
     >('/loading/validate', {
       trollyId,
@@ -82,7 +82,7 @@ export const loadingService = {
       pageSize: pageSize.toString(),
       ...(search && { search }),
     })
-    const response = await apiClient.get<PaginatedResponse<TrolleyLoading>>(
+    const response = await api.get<PaginatedResponse<TrolleyLoading>>(
       `/loading/transactions?${params}`
     )
     return response.data
@@ -90,7 +90,7 @@ export const loadingService = {
 
   // Get loading transaction by ID
   getLoadingById: async (id: string) => {
-    const response = await apiClient.get<ApiResponse<TrolleyLoading>>(
+    const response = await api.get<ApiResponse<TrolleyLoading>>(
       `/loading/transactions/${id}`
     )
     return response.data
@@ -98,7 +98,7 @@ export const loadingService = {
 
   // Get loading transactions by trolly
   getLoadingsByTrolly: async (trollyId: string) => {
-    const response = await apiClient.get<ApiResponse<TrolleyLoading[]>>(
+    const response = await api.get<ApiResponse<TrolleyLoading[]>>(
       `/loading/transactions/trolly/${trollyId}`
     )
     return response.data
@@ -106,7 +106,7 @@ export const loadingService = {
 
   // Get loading transactions by operator
   getLoadingsByOperator: async (operatorId: string) => {
-    const response = await apiClient.get<ApiResponse<TrolleyLoading[]>>(
+    const response = await api.get<ApiResponse<TrolleyLoading[]>>(
       `/loading/transactions/operator/${operatorId}`
     )
     return response.data
@@ -117,7 +117,7 @@ export const loadingService = {
     id: string,
     status: 'Loaded' | 'In Transit' | 'Unloaded'
   ) => {
-    const response = await apiClient.patch<ApiResponse<TrolleyLoading>>(
+    const response = await api.patch<ApiResponse<TrolleyLoading>>(
       `/loading/transactions/${id}/status`,
       {
         status,
@@ -128,7 +128,7 @@ export const loadingService = {
 
   // Complete unloading
   completeUnloading: async (id: string) => {
-    const response = await apiClient.patch<ApiResponse<TrolleyLoading>>(
+    const response = await api.patch<ApiResponse<TrolleyLoading>>(
       `/loading/transactions/${id}/unload`,
       {}
     )
