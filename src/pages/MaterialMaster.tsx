@@ -111,21 +111,19 @@ const MaterialMaster: React.FC = () => {
       const data = response.data || response
       const totalCount = response.count || data.length
 
-      const mappedMaterials = (Array.isArray(data) ? data : []).map(
-        (item: Material) => ({
-          material_id: item.material_id,
-          material_code: item.material_code,
-          material_name: item.material_name,
-          material_type: item.material_type,
-          length_mm: parseFloat(item.length_mm).toFixed(2),
-          width_mm: parseFloat(item.width_mm).toFixed(2),
-          height_mm: parseFloat(item.height_mm).toFixed(2),
-          weight_kg: parseFloat(item.weight_kg).toFixed(3),
-          status: item.status,
-          createdAt: item.createdAt,
-          updatedAt: item.updatedAt,
-        })
-      )
+      const mappedMaterials = (Array.isArray(data) ? data : []).map((item) => ({
+        material_id: item.material_id,
+        material_code: item.material_code,
+        material_name: item.material_name,
+        material_type: item.material_type,
+        length_mm: parseFloat(String(item?.length_mm ?? 0)).toFixed(2),
+        width_mm: parseFloat(String(item?.width_mm ?? 0)).toFixed(2),
+        height_mm: parseFloat(String(item?.height_mm ?? 0)).toFixed(2),
+        weight_kg: parseFloat(String(item?.weight_kg ?? 0)).toFixed(3),
+        status: item.status,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      }))
 
       setMaterials(mappedMaterials)
       setTotal(totalCount)
