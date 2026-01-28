@@ -63,6 +63,7 @@ const MaterialMaster: React.FC = () => {
   const [formData, setFormData] = useState({
     materialId: '',
     materialName: '',
+    materialCode: '',
     materialType: 'Plastic' as string,
     length: 0,
     width: 0,
@@ -140,6 +141,7 @@ const MaterialMaster: React.FC = () => {
     setEditingMaterial(null)
     setFormData({
       materialId: '',
+      materialCode: '',
       materialName: '',
       materialType: 'Plastic',
       length: 0,
@@ -157,10 +159,14 @@ const MaterialMaster: React.FC = () => {
 
   const handleEdit = (material: Material) => {
     setEditingMaterial(material)
+    const materialType =
+      material.material_type.charAt(0).toUpperCase() +
+      material.material_type.slice(1).toLowerCase()
     setFormData({
       materialId: material.material_id,
+      materialCode: material.material_code,
       materialName: material.material_name,
-      materialType: (material.material_type as string) || 'Other', // Default to 'Other' if the type is not recognized
+      materialType: materialType,
       length: parseFloat(material.length_mm),
       width: parseFloat(material.width_mm),
       height: parseFloat(material.height_mm),
@@ -187,10 +193,19 @@ const MaterialMaster: React.FC = () => {
   }
 
   const handleSubmit = async () => {
+    // Validate required fields
+    if (!formData.materialCode.trim()) {
+      showAlert('Material Code is required', 'error')
+      return
+    }
+    if (!formData.materialName.trim()) {
+      showAlert('Material Name is required', 'error')
+      return
+    }
+
     try {
       const payload = {
-        material_id: formData.materialId,
-        material_code: formData.materialId,
+        material_code: formData.materialCode,
         material_name: formData.materialName,
         material_type: formData.materialType.toUpperCase(),
         length_mm: formData.length.toString(),
@@ -269,10 +284,10 @@ const MaterialMaster: React.FC = () => {
         <DialogContent dividers>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
             <TextField
-              label="Material ID"
-              value={formData.materialId}
+              label="Material Code"
+              value={formData.materialCode}
               onChange={(e) =>
-                setFormData({ ...formData, materialId: e.target.value })
+                setFormData({ ...formData, materialCode: e.target.value })
               }
               fullWidth
             />
@@ -288,6 +303,7 @@ const MaterialMaster: React.FC = () => {
               <InputLabel>Material Type</InputLabel>
               <Select
                 value={formData.materialType}
+                label="Material Type"
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -355,6 +371,7 @@ const MaterialMaster: React.FC = () => {
               <InputLabel>Unit</InputLabel>
               <Select
                 value={formData.unit}
+                label="Unit"
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -380,6 +397,7 @@ const MaterialMaster: React.FC = () => {
               <InputLabel>Weight Unit</InputLabel>
               <Select
                 value={formData.weightUnit}
+                label="Weight Unit"
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -395,6 +413,7 @@ const MaterialMaster: React.FC = () => {
               <InputLabel>Status</InputLabel>
               <Select
                 value={formData.status}
+                label="Status"
                 onChange={(e) =>
                   setFormData({
                     ...formData,

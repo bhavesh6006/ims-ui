@@ -37,7 +37,7 @@ const TrollyMaster: React.FC = () => {
 
   const [formData, setFormData] = useState({
     trollyCode: '',
-    trollyType: 'STANDARD' as string,
+    trollyType: '' as string,
     barcode: '',
     qrCode: '',
     lengthMm: '',
@@ -101,7 +101,7 @@ const TrollyMaster: React.FC = () => {
     setEditingTrolly(null)
     setFormData({
       trollyCode: '',
-      trollyType: 'STANDARD',
+      trollyType: '',
       barcode: '',
       qrCode: '',
       lengthMm: '',
@@ -144,16 +144,26 @@ const TrollyMaster: React.FC = () => {
   }
 
   const handleSubmit = async () => {
+    // Validate required fields
+    if (!formData.trollyCode.trim()) {
+      showAlert('Trolley Code is required', 'error')
+      return
+    }
+    if (!formData.trollyType) {
+      showAlert('Type is required', 'error')
+      return
+    }
+
     try {
       const payload = {
         trolley_code: formData.trollyCode,
         trolley_type: formData.trollyType,
         barcode: formData.barcode,
         qr_code: formData.qrCode,
-        length_mm: formData.lengthMm,
-        width_mm: formData.widthMm,
-        height_mm: formData.heightMm,
-        volume_mm3: formData.volumeMm3,
+        length_mm: formData.lengthMm || '0',
+        width_mm: formData.widthMm || '0',
+        height_mm: formData.heightMm || '0',
+        volume_mm3: formData.volumeMm3 || '0',
         notes: formData.notes,
         status: formData.status,
       }
@@ -227,10 +237,11 @@ const TrollyMaster: React.FC = () => {
               fullWidth
               required
             />
-            <FormControl fullWidth>
+            <FormControl fullWidth required>
               <InputLabel>Type</InputLabel>
               <Select
                 value={formData.trollyType}
+                label="Type"
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -268,7 +279,6 @@ const TrollyMaster: React.FC = () => {
                 setFormData({ ...formData, lengthMm: e.target.value })
               }
               fullWidth
-              required
             />
             <TextField
               label="Width (mm)"
@@ -278,7 +288,6 @@ const TrollyMaster: React.FC = () => {
                 setFormData({ ...formData, widthMm: e.target.value })
               }
               fullWidth
-              required
             />
             <TextField
               label="Height (mm)"
@@ -288,7 +297,6 @@ const TrollyMaster: React.FC = () => {
                 setFormData({ ...formData, heightMm: e.target.value })
               }
               fullWidth
-              required
             />
             <TextField
               label="Volume (mm³)"
@@ -303,6 +311,7 @@ const TrollyMaster: React.FC = () => {
               <InputLabel>Status</InputLabel>
               <Select
                 value={formData.status}
+                label="Status"
                 onChange={(e) =>
                   setFormData({
                     ...formData,
