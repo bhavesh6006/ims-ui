@@ -161,6 +161,22 @@ export interface WorkOrder {
   updatedAt: string
 }
 
+// Work Order for Operator Loading
+export interface OperatorWorkOrder {
+  id: string
+  srNo: number
+  date: string
+  tool: string
+  subTool: string
+  doorColour: string
+  handle: string
+  micom: string
+  lock1: string
+  dispType: string
+  inputPlan: number
+  outputPlan: number
+}
+
 // Trolley Loading Transaction
 export interface TrolleyLoading {
   id: string

@@ -26,6 +26,12 @@ export const trollyService = {
     return response.data
   },
 
+  // Scan trolly by barcode or QR code
+  scan: async (code: string): Promise<{ data: Trolly }> => {
+    const response = await api.get<Trolly>(`/trollies/scan/${code}`)
+    return { data: response.data }
+  },
+
   // Create new trolly
   create: async (
     data: Omit<Trolly, 'id' | 'createdAt' | 'updatedAt'>
