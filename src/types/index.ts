@@ -165,9 +165,10 @@ export interface WorkOrder {
 export interface OperatorWorkOrder {
   id: string
   srNo: number
+  workOrderNumber: string
   date: string
   tool: string
-  subTool: string
+  subTool: string // Material Code
   doorColour: string
   handle: string
   micom: string

@@ -50,6 +50,17 @@ export const mappingService = {
   delete: async (id: string) => {
     await api.delete(`/mappings/${id}`)
   },
+
+  // Get material-trolley mapping by material code and trolley code
+  getMaterialTrolleyMapping: async (
+    materialCode: string,
+    trolleyCode: string
+  ) => {
+    const response = await api.get<{ quantity: number; maxCapacity: number }>(
+      `/mappings/material-trolley/${materialCode}/${trolleyCode}`
+    )
+    return response
+  },
 }
 
 export default mappingService
