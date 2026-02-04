@@ -13,9 +13,11 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
+  Paper,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
+import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import { DataTable, type Column } from '../components/organisms'
 import { SearchBar, Alert } from '../components/molecules'
 import { trollyService } from '../services'
@@ -46,7 +48,9 @@ const TrollyMaster: React.FC = () => {
     volumeMm3: '',
     notes: '',
     status: 'ACTIVE' as string,
+    trolleyImage: '',
   })
+  const [imagePreview, setImagePreview] = useState<string>('')
 
   const columns: Column[] = [
     { id: 'trolley_code', label: 'Trolley Code' },
@@ -56,7 +60,7 @@ const TrollyMaster: React.FC = () => {
     {
       id: 'dimensions',
       label: 'Dimensions (L×W×H mm)',
-      format: (value: unknown, row?: Record<string, unknown>) => {
+      format: (_value: unknown, row?: Record<string, unknown>) => {
         const trolly = row as Trolly | undefined
         if (trolly) {
           return `${trolly.length_mm}×${trolly.width_mm}×${trolly.height_mm}`
@@ -70,6 +74,14 @@ const TrollyMaster: React.FC = () => {
       format: (value: unknown) => {
         const volume = value as string
         return Number(volume).toLocaleString()
+      },
+    },
+    {
+      id: 'trolley_image',
+      label: 'Image',
+      format: (value: unknown) => {
+        const imageUrl = value as string
+        return imageUrl ? '[Image Available]' : '[No Image]'
       },
     },
     {
@@ -110,7 +122,9 @@ const TrollyMaster: React.FC = () => {
       volumeMm3: '',
       notes: '',
       status: 'ACTIVE',
+      trolleyImage: '',
     })
+    setImagePreview('')
     setModalOpen(true)
   }
 
@@ -127,8 +141,50 @@ const TrollyMaster: React.FC = () => {
       volumeMm3: trolly.volume_mm3,
       notes: trolly.notes || '',
       status: trolly.status,
+      trolleyImage:
+        ((trolly as Record<string, unknown>).trolley_image as string) || '',
     })
+    setImagePreview(
+      ((trolly as Record<string, unknown>).trolley_image as string) || ''
+    )
     setModalOpen(true)
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        showAlert('Please select a valid image file', 'error')
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showAlert('Image size should be less than 5MB', 'error')
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result as string
+        setImagePreview(base64String)
+        setFormData({ ...formData, trolleyImage: base64String })
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const getBlankImage = (): string => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 400
+    canvas.height = 400
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.strokeStyle = '#e0e0e0'
+      ctx.lineWidth = 2
+      ctx.strokeRect(0, 0, canvas.width, canvas.height)
+    }
+    return canvas.toDataURL('image/png')
   }
 
   const handleDelete = async (trolly: Trolly) => {
@@ -166,6 +222,7 @@ const TrollyMaster: React.FC = () => {
         volume_mm3: formData.volumeMm3 || '0',
         notes: formData.notes,
         status: formData.status,
+        trolley_image: formData.trolleyImage || getBlankImage(),
       }
 
       if (editingTrolly) {
@@ -323,6 +380,82 @@ const TrollyMaster: React.FC = () => {
                 <MenuItem value="INACTIVE">INACTIVE</MenuItem>
               </Select>
             </FormControl>
+
+            {/* Image Section - Before Notes */}
+            <Box>
+              <Typography
+                variant="subtitle2"
+                sx={{ mb: 1, fontWeight: 600, fontSize: '0.95rem' }}
+              >
+                Trolley Image (Optional)
+              </Typography>
+              <Paper
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  p: 1.5,
+                  border: '2px dashed #e0e0e0',
+                  backgroundColor: '#fafafa',
+                  minHeight: 100,
+                  width: '100%',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5',
+                    borderColor: '#bdbdbd',
+                  },
+                }}
+                component="label"
+              >
+                {imagePreview ? (
+                  <Box
+                    component="img"
+                    src={imagePreview}
+                    alt="Trolley Preview"
+                    sx={{
+                      maxWidth: '100%',
+                      maxHeight: 80,
+                      objectFit: 'contain',
+                    }}
+                  />
+                ) : (
+                  <Box sx={{ textAlign: 'center' }}>
+                    <CloudUploadIcon
+                      sx={{ fontSize: 32, color: '#bdbdbd', mb: 0.5 }}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{ color: '#757575', display: 'block' }}
+                    >
+                      Click to upload image (PNG, JPG up to 5MB)
+                    </Typography>
+                  </Box>
+                )}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+              </Paper>
+              {imagePreview && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  sx={{ mt: 1 }}
+                  onClick={() => {
+                    setImagePreview('')
+                    setFormData({ ...formData, trolleyImage: '' })
+                  }}
+                >
+                  Remove Image
+                </Button>
+              )}
+            </Box>
+
             <TextField
               label="Notes"
               value={formData.notes}

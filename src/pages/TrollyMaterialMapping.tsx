@@ -13,13 +13,30 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { DataTable, type Column } from '../components/organisms'
 import { SearchBar, Alert } from '../components/molecules'
 import { mappingService, trollyService, materialService } from '../services'
 import type { TrollyMaterialMapping, Trolly, Material } from '../types'
+
+interface MappingRow {
+  id: string
+  materialId: string
+  maxCapacity: number
+  effectiveFrom: string
+  effectiveTo: string
+  notes: string
+}
 
 const TrollyMaterialMapping: React.FC = () => {
   const [mappings, setMappings] = useState<TrollyMaterialMapping[]>([])
@@ -38,15 +55,8 @@ const TrollyMaterialMapping: React.FC = () => {
     severity: 'success' as 'success' | 'error',
   })
 
-  const [formData, setFormData] = useState({
-    trollyId: '',
-    materialId: '',
-    maxCapacity: 0,
-    effectiveFrom: '',
-    effectiveTo: '',
-    notes: '',
-    status: 'ACTIVE' as string,
-  })
+  const [selectedTrollyId, setSelectedTrollyId] = useState('')
+  const [mappingRows, setMappingRows] = useState<MappingRow[]>([])
 
   const columns: Column[] = [
     { id: 'trollyId', label: 'Trolly ID' },
@@ -55,13 +65,22 @@ const TrollyMaterialMapping: React.FC = () => {
     {
       id: 'effectiveFrom',
       label: 'Effective From',
-      format: (date: string) => new Date(date).toLocaleDateString(),
+      format: (value: unknown) => {
+        if (typeof value === 'string') {
+          return new Date(value).toLocaleDateString()
+        }
+        return 'N/A'
+      },
     },
     {
       id: 'effectiveTo',
       label: 'Effective To',
-      format: (date: string) =>
-        date ? new Date(date).toLocaleDateString() : 'N/A',
+      format: (value: unknown) => {
+        if (typeof value === 'string') {
+          return new Date(value).toLocaleDateString()
+        }
+        return 'N/A'
+      },
     },
     { id: 'status', label: 'Status' },
   ]
@@ -74,7 +93,7 @@ const TrollyMaterialMapping: React.FC = () => {
     try {
       const response = await mappingService.getAll(page + 1, pageSize, search)
       setMappings(response.data)
-      setTotal(response.total)
+      setTotal(response.count)
     } catch {
       showAlert('Failed to load mappings', 'error')
     }
@@ -100,33 +119,70 @@ const TrollyMaterialMapping: React.FC = () => {
 
   const handleAdd = () => {
     setEditingMapping(null)
-    setFormData({
-      trollyId: '',
-      materialId: '',
-      maxCapacity: 0,
-      effectiveFrom: new Date().toISOString().split('T')[0],
-      effectiveTo: '',
-      notes: '',
-      status: 'ACTIVE',
-    })
+    setSelectedTrollyId('')
+    setMappingRows([
+      {
+        id: '1',
+        materialId: '',
+        maxCapacity: 0,
+        effectiveFrom: new Date().toISOString().split('T')[0],
+        effectiveTo: '',
+        notes: '',
+      },
+    ])
     setModalOpen(true)
+  }
+
+  const handleAddMore = () => {
+    const newId = (
+      Math.max(...mappingRows.map((r) => Number(r.id)), 0) + 1
+    ).toString()
+    setMappingRows([
+      ...mappingRows,
+      {
+        id: newId,
+        materialId: '',
+        maxCapacity: 0,
+        effectiveFrom: new Date().toISOString().split('T')[0],
+        effectiveTo: '',
+        notes: '',
+      },
+    ])
+  }
+
+  const handleRowChange = (rowId: string, field: string, value: unknown) => {
+    setMappingRows(
+      mappingRows.map((row) =>
+        row.id === rowId ? { ...row, [field]: value } : row
+      )
+    )
+  }
+
+  const handleRemoveRow = (rowId: string) => {
+    if (mappingRows.length > 1) {
+      setMappingRows(mappingRows.filter((row) => row.id !== rowId))
+    } else {
+      showAlert('At least one material must be mapped', 'error')
+    }
   }
 
   const handleEdit = (mapping: TrollyMaterialMapping) => {
     setEditingMapping(mapping)
-    setFormData({
-      trollyId: mapping.trollyId,
-      materialId: mapping.materialId,
-      maxCapacity: mapping.maxCapacity,
-      effectiveFrom: new Date(mapping.effectiveFrom)
-        .toISOString()
-        .split('T')[0],
-      effectiveTo: mapping.effectiveTo
-        ? new Date(mapping.effectiveTo).toISOString().split('T')[0]
-        : '',
-      notes: mapping.notes || '',
-      status: mapping.status,
-    })
+    setSelectedTrollyId(mapping.trollyId)
+    setMappingRows([
+      {
+        id: mapping.id,
+        materialId: mapping.materialId,
+        maxCapacity: mapping.maxCapacity,
+        effectiveFrom: new Date(mapping.effectiveFrom)
+          .toISOString()
+          .split('T')[0],
+        effectiveTo: mapping.effectiveTo
+          ? new Date(mapping.effectiveTo).toISOString().split('T')[0]
+          : '',
+        notes: mapping.notes || '',
+      },
+    ])
     setModalOpen(true)
   }
 
@@ -143,40 +199,67 @@ const TrollyMaterialMapping: React.FC = () => {
   }
 
   const handleSubmit = async () => {
-    try {
-      // Validate compatibility
-      const isCompatible = await mappingService.validateCompatibility(
-        formData.trollyId,
-        formData.materialId,
-        formData.maxCapacity
-      )
+    // Validation
+    if (!selectedTrollyId) {
+      showAlert('Please select a Trolly', 'error')
+      return
+    }
 
-      if (!isCompatible) {
-        showAlert('Trolly and Material are not compatible', 'error')
+    if (mappingRows.length === 0) {
+      showAlert('Please add at least one material mapping', 'error')
+      return
+    }
+
+    // Validate all rows
+    for (const row of mappingRows) {
+      if (!row.materialId) {
+        showAlert('Please select a material for all rows', 'error')
+        return
+      }
+      if (row.maxCapacity <= 0) {
+        showAlert('Max Capacity must be greater than 0', 'error')
+        return
+      }
+    }
+
+    try {
+      const selectedTrolly = trollies.find(
+        (t) => (t.trolley_id || t.trollyId) === selectedTrollyId
+      )
+      if (!selectedTrolly) {
+        showAlert('Invalid trolly selected', 'error')
         return
       }
 
-      const payload = {
-        trollyId: formData.trollyId,
-        materialId: formData.materialId,
-        trollyType: formData.trollyId.split('-')[0] || 'Bin',
-        materialType: formData.materialId.split('-')[0] || 'Plastic',
-        maxCapacity: formData.maxCapacity,
-        effectiveFrom: formData.effectiveFrom,
-        effectiveTo: formData.effectiveTo || undefined,
-        effectiveDate: formData.effectiveFrom,
-        notes: formData.notes,
-        version: 1,
-        status: formData.status,
-      }
+      // Create multiple mappings in parallel
+      const promises = mappingRows.map((row) => {
+        const payload = {
+          trollyId: selectedTrollyId,
+          materialId: row.materialId,
+          trollyType:
+            selectedTrolly.trolley_type || selectedTrolly.trollyType || 'Bin',
+          materialType: row.materialId.split('-')[0] || 'Plastic',
+          maxCapacity: row.maxCapacity,
+          effectiveFrom: row.effectiveFrom,
+          effectiveTo: row.effectiveTo || undefined,
+          effectiveDate: row.effectiveFrom,
+          notes: row.notes,
+          version: 1,
+          status: 'ACTIVE',
+        }
 
-      if (editingMapping) {
-        await mappingService.update(editingMapping.id, payload)
-        showAlert('Mapping updated', 'success')
-      } else {
-        await mappingService.create(payload)
-        showAlert('Mapping created', 'success')
-      }
+        if (editingMapping && row.id === editingMapping.id) {
+          return mappingService.update(editingMapping.id, payload)
+        } else {
+          return mappingService.create(payload)
+        }
+      })
+
+      await Promise.all(promises)
+      showAlert(
+        `${mappingRows.length} material mapping(s) created successfully`,
+        'success'
+      )
       setModalOpen(false)
       loadMappings()
     } catch {
@@ -216,11 +299,11 @@ const TrollyMaterialMapping: React.FC = () => {
       <Dialog
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        maxWidth="sm"
+        maxWidth="xl"
         fullWidth
       >
         <DialogTitle>
-          {editingMapping ? 'Edit Mapping' : 'Add Mapping'}
+          {editingMapping ? 'Edit Mapping' : 'Add Multiple Material Mappings'}
           <IconButton
             onClick={() => setModalOpen(false)}
             sx={{ position: 'absolute', right: 8, top: 8 }}
@@ -229,102 +312,198 @@ const TrollyMaterialMapping: React.FC = () => {
           </IconButton>
         </DialogTitle>
         <DialogContent dividers>
-          <Box sx={{ display: 'grid', gap: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel>Trolly</InputLabel>
-              <Select
-                value={formData.trollyId}
-                onChange={(e) =>
-                  setFormData({ ...formData, trollyId: e.target.value })
-                }
-                disabled={!!editingMapping}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Trolly Selection */}
+            <Box>
+              <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                Select Trolly
+              </Typography>
+              <FormControl fullWidth>
+                <InputLabel>Trolly</InputLabel>
+                <Select
+                  value={selectedTrollyId}
+                  onChange={(e) => setSelectedTrollyId(e.target.value)}
+                  disabled={!!editingMapping}
+                  label="Trolly"
+                >
+                  {trollies.map((trolly) => {
+                    const trollyId = String(
+                      trolly.trolley_id || trolly.trollyId || ''
+                    )
+                    const trollyCode = String(
+                      trolly.trolley_code || trolly.trollyCode || ''
+                    )
+                    return (
+                      <MenuItem key={String(trolly.id)} value={trollyId}>
+                        {trollyCode}
+                      </MenuItem>
+                    )
+                  })}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Materials Grid */}
+            <Box>
+              <Box
+                sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}
               >
-                {trollies.map((trolly) => (
-                  <MenuItem key={trolly.id} value={trolly.trollyId}>
-                    {trolly.trollyId} ({trolly.trollyType})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Material</InputLabel>
-              <Select
-                value={formData.materialId}
-                onChange={(e) =>
-                  setFormData({ ...formData, materialId: e.target.value })
-                }
-                disabled={!!editingMapping}
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  Material Mappings ({mappingRows.length})
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddMore}
+                >
+                  Add More
+                </Button>
+              </Box>
+
+              <TableContainer
+                component={Paper}
+                sx={{ mb: 2, maxHeight: 500, overflowY: 'auto' }}
               >
-                {materials.map((material) => (
-                  <MenuItem key={material.id} value={material.materialId}>
-                    {material.materialId} - {material.materialName}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              label="Max Capacity"
-              type="number"
-              value={formData.maxCapacity}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  maxCapacity: Number(e.target.value),
-                })
-              }
-              fullWidth
-            />
-            <TextField
-              label="Effective From"
-              type="date"
-              value={formData.effectiveFrom}
-              onChange={(e) =>
-                setFormData({ ...formData, effectiveFrom: e.target.value })
-              }
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label="Effective To"
-              type="date"
-              value={formData.effectiveTo}
-              onChange={(e) =>
-                setFormData({ ...formData, effectiveTo: e.target.value })
-              }
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-            />
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={formData.status}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    status: e.target.value as string,
-                  })
-                }
-              >
-                <MenuItem value="ACTIVE">ACTIVE</MenuItem>
-                <MenuItem value="INACTIVE">INACTIVE</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              label="Notes"
-              value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
-              fullWidth
-              multiline
-              rows={3}
-            />
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                      <TableCell sx={{ fontWeight: 600, minWidth: 150 }}>
+                        Material
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, minWidth: 120 }}>
+                        Max Capacity
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, minWidth: 130 }}>
+                        Effective From
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, minWidth: 130 }}>
+                        Effective To
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, minWidth: 100 }}>
+                        Notes
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, width: 50 }}>
+                        Action
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {mappingRows.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>
+                          <FormControl fullWidth size="small">
+                            <InputLabel>Material</InputLabel>
+                            <Select
+                              label="Material"
+                              value={row.materialId}
+                              onChange={(e) =>
+                                handleRowChange(
+                                  row.id,
+                                  'materialId',
+                                  e.target.value
+                                )
+                              }
+                            >
+                              <MenuItem value="">
+                                <em>Select Material</em>
+                              </MenuItem>
+                              {materials.map((material) => {
+                                const matId = String(
+                                  material.materialId || material.id || ''
+                                )
+                                const matCode = String(
+                                  material.material_code ||
+                                    material.materialCode ||
+                                    ''
+                                )
+                                return (
+                                  <MenuItem key={matId} value={matId}>
+                                    {matCode}
+                                  </MenuItem>
+                                )
+                              })}
+                            </Select>
+                          </FormControl>
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            type="number"
+                            size="small"
+                            value={row.maxCapacity}
+                            onChange={(e) =>
+                              handleRowChange(
+                                row.id,
+                                'maxCapacity',
+                                Number(e.target.value)
+                              )
+                            }
+                            inputProps={{ min: 0 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            type="date"
+                            size="small"
+                            value={row.effectiveFrom}
+                            onChange={(e) =>
+                              handleRowChange(
+                                row.id,
+                                'effectiveFrom',
+                                e.target.value
+                              )
+                            }
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            type="date"
+                            size="small"
+                            value={row.effectiveTo}
+                            onChange={(e) =>
+                              handleRowChange(
+                                row.id,
+                                'effectiveTo',
+                                e.target.value
+                              )
+                            }
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            multiline
+                            rows={1}
+                            size="small"
+                            value={row.notes}
+                            onChange={(e) =>
+                              handleRowChange(row.id, 'notes', e.target.value)
+                            }
+                            sx={{ maxWidth: 100 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRemoveRow(row.id)}
+                            color="error"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setModalOpen(false)}>Cancel</Button>
           <Button onClick={handleSubmit} variant="contained">
-            {editingMapping ? 'Update' : 'Create'}
+            {editingMapping ? 'Update' : 'Create Mappings'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -64,7 +64,7 @@ const MaterialMaster: React.FC = () => {
     materialId: '',
     materialName: '',
     materialCode: '',
-    materialType: 'Plastic' as string,
+    materialType: '' as string,
     length: 0,
     width: 0,
     height: 0,
@@ -143,7 +143,7 @@ const MaterialMaster: React.FC = () => {
       materialId: '',
       materialCode: '',
       materialName: '',
-      materialType: 'Plastic',
+      materialType: '',
       length: 0,
       width: 0,
       height: 0,
@@ -200,6 +200,10 @@ const MaterialMaster: React.FC = () => {
     }
     if (!formData.materialName.trim()) {
       showAlert('Material Name is required', 'error')
+      return
+    }
+    if (!formData.materialType.trim()) {
+      showAlert('Material Type is required', 'error')
       return
     }
 
@@ -290,6 +294,7 @@ const MaterialMaster: React.FC = () => {
                 setFormData({ ...formData, materialCode: e.target.value })
               }
               fullWidth
+              required
             />
             <TextField
               label="Material Name"
@@ -298,8 +303,9 @@ const MaterialMaster: React.FC = () => {
                 setFormData({ ...formData, materialName: e.target.value })
               }
               fullWidth
+              required
             />
-            <FormControl fullWidth>
+            <FormControl fullWidth required>
               <InputLabel>Material Type</InputLabel>
               <Select
                 value={formData.materialType}

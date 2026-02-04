@@ -47,7 +47,7 @@ export interface Material {
 }
 
 // Trolly and Material Mapping
-export interface TrollyMaterialMapping {
+export interface TrollyMaterialMapping extends Record<string, unknown> {
   id: string
   trollyId: string
   materialId: string
