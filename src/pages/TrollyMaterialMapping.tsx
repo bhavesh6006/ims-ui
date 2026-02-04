@@ -409,14 +409,8 @@ const TrollyMaterialMapping: React.FC = () => {
                                 <em>Select Material</em>
                               </MenuItem>
                               {materials.map((material) => {
-                                const matId = String(
-                                  material.materialId || material.id || ''
-                                )
-                                const matCode = String(
-                                  material.material_code ||
-                                    material.materialCode ||
-                                    ''
-                                )
+                                const matId = String(material.material_id)
+                                const matCode = String(material.material_code)
                                 return (
                                   <MenuItem key={matId} value={matId}>
                                     {matCode}
