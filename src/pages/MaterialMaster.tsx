@@ -21,7 +21,12 @@ import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
 import { DataTable, type Column } from '../components/organisms'
 import { SearchBar, Alert } from '../components/molecules'
-import { materialService } from '../services'
+import {
+  materialService,
+  materialTypeService,
+  subtoolPositionService,
+} from '../services'
+import type { SubtoolPosition } from '../services/subtoolPositionService'
 
 type Material = {
   material_id: string
@@ -37,17 +42,17 @@ type Material = {
   updatedAt: string
 }
 
-const POSITIONS = [
-  'Left',
-  'Right',
-  'Left Upper',
-  'Left Lower',
-  'Right Upper',
-  'Right Lower',
-]
+type MaterialType = {
+  material_type_id: string
+  material_type: string
+}
 
 const MaterialMaster: React.FC = () => {
   const [materials, setMaterials] = useState<Material[]>([])
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([])
+  const [subtoolPositions, setSubtoolPositions] = useState<SubtoolPosition[]>(
+    []
+  )
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const [total, setTotal] = useState(0)
@@ -133,9 +138,41 @@ const MaterialMaster: React.FC = () => {
     }
   }, [page, pageSize, search])
 
+  const loadMaterialTypes = useCallback(async () => {
+    try {
+      const response = await materialTypeService.getAll()
+
+      // Handle different response structures
+      const data = response.data || response
+      const types = Array.isArray(data) ? data : []
+
+      setMaterialTypes(types)
+    } catch {
+      showAlert('Failed to load material types', 'error')
+      setMaterialTypes([]) // Ensure it's always an array even on error
+    }
+  }, [])
+
+  const loadSubtoolPositions = useCallback(async () => {
+    try {
+      const response = await subtoolPositionService.getAll()
+
+      // Handle different response structures
+      const data = response.data || response
+      const positions = Array.isArray(data) ? data : []
+
+      setSubtoolPositions(positions)
+    } catch {
+      showAlert('Failed to load subtool positions', 'error')
+      setSubtoolPositions([]) // Ensure it's always an array even on error
+    }
+  }, [])
+
   useEffect(() => {
     loadMaterials()
-  }, [loadMaterials])
+    loadMaterialTypes()
+    loadSubtoolPositions()
+  }, [loadMaterials, loadMaterialTypes, loadSubtoolPositions])
 
   const handleAdd = () => {
     setEditingMaterial(null)
@@ -159,14 +196,11 @@ const MaterialMaster: React.FC = () => {
 
   const handleEdit = (material: Material) => {
     setEditingMaterial(material)
-    const materialType =
-      material.material_type.charAt(0).toUpperCase() +
-      material.material_type.slice(1).toLowerCase()
     setFormData({
       materialId: material.material_id,
       materialCode: material.material_code,
       materialName: material.material_name,
-      materialType: materialType,
+      materialType: material.material_type,
       length: parseFloat(material.length_mm),
       width: parseFloat(material.width_mm),
       height: parseFloat(material.height_mm),
@@ -202,7 +236,7 @@ const MaterialMaster: React.FC = () => {
       showAlert('Material Name is required', 'error')
       return
     }
-    if (!formData.materialType.trim()) {
+    if (!formData.materialType) {
       showAlert('Material Type is required', 'error')
       return
     }
@@ -211,7 +245,7 @@ const MaterialMaster: React.FC = () => {
       const payload = {
         material_code: formData.materialCode,
         material_name: formData.materialName,
-        material_type: formData.materialType.toUpperCase(),
+        material_type: formData.materialType,
         length_mm: formData.length.toString(),
         width_mm: formData.width.toString(),
         height_mm: formData.height.toString(),
@@ -294,7 +328,6 @@ const MaterialMaster: React.FC = () => {
                 setFormData({ ...formData, materialCode: e.target.value })
               }
               fullWidth
-              required
             />
             <TextField
               label="Material Name"
@@ -303,7 +336,6 @@ const MaterialMaster: React.FC = () => {
                 setFormData({ ...formData, materialName: e.target.value })
               }
               fullWidth
-              required
             />
             <FormControl fullWidth required>
               <InputLabel>Material Type</InputLabel>
@@ -317,20 +349,23 @@ const MaterialMaster: React.FC = () => {
                   })
                 }
               >
-                <MenuItem value="Plastic">Plastic</MenuItem>
-                <MenuItem value="Metal">Metal</MenuItem>
-                <MenuItem value="Rubber">Rubber</MenuItem>
-                <MenuItem value="Composite">Composite</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
+                {materialTypes.map((type) => (
+                  <MenuItem
+                    key={type.material_type_id}
+                    value={type.material_type}
+                  >
+                    {type.material_type}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
             <FormControl fullWidth sx={{ gridColumn: '1 / -1' }}>
-              <InputLabel>Allowed Positions</InputLabel>
+              <InputLabel>Subtool Positions</InputLabel>
               <Select
                 multiple
                 value={formData.allowedPositions}
                 onChange={handlePositionChange}
-                input={<OutlinedInput label="Allowed Positions" />}
+                input={<OutlinedInput label="Subtool Positions" />}
                 renderValue={(selected) => (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                     {selected.map((value) => (
@@ -339,9 +374,12 @@ const MaterialMaster: React.FC = () => {
                   </Box>
                 )}
               >
-                {POSITIONS.map((position) => (
-                  <MenuItem key={position} value={position}>
-                    {position}
+                {subtoolPositions.map((position) => (
+                  <MenuItem
+                    key={position.subtool_position_id}
+                    value={position.subtool_position}
+                  >
+                    {position.subtool_position}
                   </MenuItem>
                 ))}
               </Select>

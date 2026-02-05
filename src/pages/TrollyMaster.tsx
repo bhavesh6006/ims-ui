@@ -20,11 +20,13 @@ import CloseIcon from '@mui/icons-material/Close'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import { DataTable, type Column } from '../components/organisms'
 import { SearchBar, Alert } from '../components/molecules'
-import { trollyService } from '../services'
+import { trollyService, trolleyTypeService } from '../services'
+import type { TrolleyType } from '../services/trolleyTypeService'
 import type { Trolly } from '../types'
 
 const TrollyMaster: React.FC = () => {
   const [trollies, setTrollies] = useState<Trolly[]>([])
+  const [trolleyTypes, setTrolleyTypes] = useState<TrolleyType[]>([])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const [total, setTotal] = useState(0)
@@ -39,7 +41,7 @@ const TrollyMaster: React.FC = () => {
 
   const [formData, setFormData] = useState({
     trollyCode: '',
-    trollyType: '' as string,
+    trollyTypeId: '' as string,
     barcode: '',
     qrCode: '',
     lengthMm: '',
@@ -54,7 +56,11 @@ const TrollyMaster: React.FC = () => {
 
   const columns: Column[] = [
     { id: 'trolley_code', label: 'Trolley Code' },
-    { id: 'trolley_type', label: 'Type' },
+    {
+      id: 'trolly_type',
+      label: 'Type',
+      format: (value: unknown) => String(value || '-'),
+    },
     { id: 'barcode', label: 'Barcode' },
     { id: 'qr_code', label: 'QR Code' },
     {
@@ -105,15 +111,31 @@ const TrollyMaster: React.FC = () => {
     }
   }, [page, pageSize, search])
 
+  const loadTrolleyTypes = useCallback(async () => {
+    try {
+      const response = await trolleyTypeService.getAll()
+
+      // Handle different response structures
+      const data = response.data || response
+      const types = Array.isArray(data) ? data : []
+
+      setTrolleyTypes(types)
+    } catch {
+      showAlert('Failed to load trolley types', 'error')
+      setTrolleyTypes([]) // Ensure it's always an array even on error
+    }
+  }, [])
+
   useEffect(() => {
     loadTrollies()
-  }, [loadTrollies])
+    loadTrolleyTypes()
+  }, [loadTrollies, loadTrolleyTypes])
 
   const handleAdd = () => {
     setEditingTrolly(null)
     setFormData({
       trollyCode: '',
-      trollyType: '',
+      trollyTypeId: '',
       barcode: '',
       qrCode: '',
       lengthMm: '',
@@ -132,7 +154,8 @@ const TrollyMaster: React.FC = () => {
     setEditingTrolly(trolly)
     setFormData({
       trollyCode: trolly.trolley_code,
-      trollyType: trolly.trolley_type,
+      trollyTypeId:
+        ((trolly as Record<string, unknown>).trolly_type_id as string) || '',
       barcode: trolly.barcode || '',
       qrCode: trolly.qr_code || '',
       lengthMm: trolly.length_mm,
@@ -172,21 +195,6 @@ const TrollyMaster: React.FC = () => {
     }
   }
 
-  const getBlankImage = (): string => {
-    const canvas = document.createElement('canvas')
-    canvas.width = 400
-    canvas.height = 400
-    const ctx = canvas.getContext('2d')
-    if (ctx) {
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-      ctx.strokeStyle = '#e0e0e0'
-      ctx.lineWidth = 2
-      ctx.strokeRect(0, 0, canvas.width, canvas.height)
-    }
-    return canvas.toDataURL('image/png')
-  }
-
   const handleDelete = async (trolly: Trolly) => {
     if (window.confirm(`Delete trolly ${trolly.trolley_code}?`)) {
       try {
@@ -205,15 +213,15 @@ const TrollyMaster: React.FC = () => {
       showAlert('Trolley Code is required', 'error')
       return
     }
-    if (!formData.trollyType) {
+    if (!formData.trollyTypeId) {
       showAlert('Type is required', 'error')
       return
     }
 
     try {
-      const payload = {
+      const payload: Record<string, string> = {
         trolley_code: formData.trollyCode,
-        trolley_type: formData.trollyType,
+        trolly_type_id: formData.trollyTypeId,
         barcode: formData.barcode,
         qr_code: formData.qrCode,
         length_mm: formData.lengthMm || '0',
@@ -222,7 +230,14 @@ const TrollyMaster: React.FC = () => {
         volume_mm3: formData.volumeMm3 || '0',
         notes: formData.notes,
         status: formData.status,
-        trolley_image: formData.trolleyImage || getBlankImage(),
+      }
+
+      // For updates, always include trolley_image (even if empty to remove it)
+      // For creates, only include if it exists
+      if (editingTrolly) {
+        payload.trolley_image = formData.trolleyImage
+      } else if (formData.trolleyImage) {
+        payload.trolley_image = formData.trolleyImage
       }
 
       if (editingTrolly) {
@@ -297,19 +312,23 @@ const TrollyMaster: React.FC = () => {
             <FormControl fullWidth required>
               <InputLabel>Type</InputLabel>
               <Select
-                value={formData.trollyType}
+                value={formData.trollyTypeId}
                 label="Type"
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    trollyType: e.target.value as string,
+                    trollyTypeId: e.target.value as string,
                   })
                 }
               >
-                <MenuItem value="STANDARD">Standard</MenuItem>
-                <MenuItem value="LIGHT_DUTY">Light Duty</MenuItem>
-                <MenuItem value="MEDIUM_DUTY">Medium Duty</MenuItem>
-                <MenuItem value="HEAVY_DUTY">Heavy Duty</MenuItem>
+                {trolleyTypes.map((type) => (
+                  <MenuItem
+                    key={type.trolly_type_id}
+                    value={type.trolly_type_id}
+                  >
+                    {type.trolly_type}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
             <TextField
@@ -364,6 +383,8 @@ const TrollyMaster: React.FC = () => {
               }
               fullWidth
             />
+
+            {/* Status and Notes in first column */}
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>
               <Select
@@ -381,11 +402,16 @@ const TrollyMaster: React.FC = () => {
               </Select>
             </FormControl>
 
-            {/* Image Section - Before Notes */}
-            <Box>
+            {/* Trolley Image in second column with matching height */}
+            <Box sx={{ gridRow: 'span 2' }}>
               <Typography
-                variant="subtitle2"
-                sx={{ mb: 1, fontWeight: 600, fontSize: '0.95rem' }}
+                variant="body2"
+                sx={{
+                  mb: 1,
+                  fontSize: '0.875rem',
+                  color: 'rgba(0, 0, 0, 0.6)',
+                  fontWeight: 400,
+                }}
               >
                 Trolley Image (Optional)
               </Typography>
@@ -398,8 +424,8 @@ const TrollyMaster: React.FC = () => {
                   p: 1.5,
                   border: '2px dashed #e0e0e0',
                   backgroundColor: '#fafafa',
-                  minHeight: 100,
-                  width: '100%',
+                  height: 'calc(100% - 28px)',
+                  minHeight: 122,
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   '&:hover': {
@@ -411,15 +437,38 @@ const TrollyMaster: React.FC = () => {
               >
                 {imagePreview ? (
                   <Box
-                    component="img"
-                    src={imagePreview}
-                    alt="Trolley Preview"
                     sx={{
-                      maxWidth: '100%',
-                      maxHeight: 80,
-                      objectFit: 'contain',
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1,
                     }}
-                  />
+                  >
+                    <Box
+                      component="img"
+                      src={imagePreview}
+                      alt="Trolley Preview"
+                      sx={{
+                        maxWidth: '100%',
+                        maxHeight: 120,
+                        objectFit: 'contain',
+                        flex: 1,
+                      }}
+                    />
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setImagePreview('')
+                        setFormData({ ...formData, trolleyImage: '' })
+                      }}
+                    >
+                      Remove Image
+                    </Button>
+                  </Box>
                 ) : (
                   <Box sx={{ textAlign: 'center' }}>
                     <CloudUploadIcon
@@ -429,7 +478,17 @@ const TrollyMaster: React.FC = () => {
                       variant="caption"
                       sx={{ color: '#757575', display: 'block' }}
                     >
-                      Click to upload image (PNG, JPG up to 5MB)
+                      Click to upload
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: '#9e9e9e',
+                        display: 'block',
+                        fontSize: '0.7rem',
+                      }}
+                    >
+                      PNG, JPG up to 5MB
                     </Typography>
                   </Box>
                 )}
@@ -440,20 +499,6 @@ const TrollyMaster: React.FC = () => {
                   onChange={handleImageUpload}
                 />
               </Paper>
-              {imagePreview && (
-                <Button
-                  variant="outlined"
-                  color="error"
-                  size="small"
-                  sx={{ mt: 1 }}
-                  onClick={() => {
-                    setImagePreview('')
-                    setFormData({ ...formData, trolleyImage: '' })
-                  }}
-                >
-                  Remove Image
-                </Button>
-              )}
             </Box>
 
             <TextField
@@ -465,7 +510,6 @@ const TrollyMaster: React.FC = () => {
               fullWidth
               multiline
               rows={3}
-              sx={{ gridColumn: '1 / -1' }}
             />
           </Box>
         </DialogContent>
