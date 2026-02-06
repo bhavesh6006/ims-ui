@@ -32,14 +32,17 @@ type Material = {
   material_id: string
   material_code: string
   material_name: string
-  material_type: string
+  material_type_id: string
+  materialType?: { material_type: string } // For display purposes
+  subtool_position_id: string[]
+  subtoolPositions?: Array<{ subtool_position: string }> // For display purposes
   length_mm: string
   width_mm: string
   height_mm: string
   weight_kg: string
   status: string
-  createdAt: string
-  updatedAt: string
+  created_at: string
+  updated_at: string
 }
 
 type MaterialType = {
@@ -69,14 +72,14 @@ const MaterialMaster: React.FC = () => {
     materialId: '',
     materialName: '',
     materialCode: '',
-    materialType: '' as string,
+    materialTypeId: '' as string,
+    subtoolPositionIds: [] as string[],
     length: 0,
     width: 0,
     height: 0,
     weight: 0,
     unit: 'cm' as 'mm' | 'cm' | 'm',
     weightUnit: 'kg' as 'kg' | 'g',
-    allowedPositions: [] as string[],
     description: '',
     status: 'ACTIVE' as string,
   })
@@ -84,7 +87,25 @@ const MaterialMaster: React.FC = () => {
   const columns: Column[] = [
     { id: 'material_code', label: 'Material Code' },
     { id: 'material_name', label: 'Name' },
-    { id: 'material_type', label: 'Type' },
+    {
+      id: 'materialType',
+      label: 'Type',
+      format: (value: unknown) => {
+        const type = value as { material_type: string } | undefined
+        return type?.material_type || 'N/A'
+      },
+    },
+    {
+      id: 'subtoolPositions',
+      label: 'Subtool Positions',
+      format: (value: unknown) => {
+        const positions = value as
+          | Array<{ subtool_position: string }>
+          | undefined
+        if (!positions || positions.length === 0) return 'N/A'
+        return positions.map((p) => p.subtool_position).join(', ')
+      },
+    },
     {
       id: 'length_mm', // Use an existing field
       label: 'Dimensions (mm)',
@@ -121,14 +142,17 @@ const MaterialMaster: React.FC = () => {
         material_id: item.material_id,
         material_code: item.material_code,
         material_name: item.material_name,
-        material_type: item.material_type,
+        material_type_id: item.material_type_id,
+        materialType: item.materialType,
+        subtool_position_id: item.subtool_position_id || [],
+        subtoolPositions: item.subtoolPositions || [],
         length_mm: parseFloat(String(item?.length_mm ?? 0)).toFixed(2),
         width_mm: parseFloat(String(item?.width_mm ?? 0)).toFixed(2),
         height_mm: parseFloat(String(item?.height_mm ?? 0)).toFixed(2),
         weight_kg: parseFloat(String(item?.weight_kg ?? 0)).toFixed(3),
         status: item.status,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
       }))
 
       setMaterials(mappedMaterials)
@@ -180,14 +204,14 @@ const MaterialMaster: React.FC = () => {
       materialId: '',
       materialCode: '',
       materialName: '',
-      materialType: '',
+      materialTypeId: '',
+      subtoolPositionIds: [],
       length: 0,
       width: 0,
       height: 0,
       weight: 0,
       unit: 'cm',
       weightUnit: 'kg',
-      allowedPositions: [],
       description: '',
       status: 'ACTIVE',
     })
@@ -200,14 +224,14 @@ const MaterialMaster: React.FC = () => {
       materialId: material.material_id,
       materialCode: material.material_code,
       materialName: material.material_name,
-      materialType: material.material_type,
+      materialTypeId: material.material_type_id,
+      subtoolPositionIds: material.subtool_position_id || [],
       length: parseFloat(material.length_mm),
       width: parseFloat(material.width_mm),
       height: parseFloat(material.height_mm),
       weight: parseFloat(material.weight_kg),
       unit: 'mm',
       weightUnit: 'kg',
-      allowedPositions: [],
       description: '',
       status: material.status,
     })
@@ -236,7 +260,7 @@ const MaterialMaster: React.FC = () => {
       showAlert('Material Name is required', 'error')
       return
     }
-    if (!formData.materialType) {
+    if (!formData.materialTypeId) {
       showAlert('Material Type is required', 'error')
       return
     }
@@ -245,7 +269,11 @@ const MaterialMaster: React.FC = () => {
       const payload = {
         material_code: formData.materialCode,
         material_name: formData.materialName,
-        material_type: formData.materialType,
+        material_type_id: formData.materialTypeId,
+        subtool_position_id:
+          formData.subtoolPositionIds.length > 0
+            ? formData.subtoolPositionIds
+            : null,
         length_mm: formData.length.toString(),
         width_mm: formData.width.toString(),
         height_mm: formData.height.toString(),
@@ -271,7 +299,7 @@ const MaterialMaster: React.FC = () => {
     const value = event.target.value
     setFormData({
       ...formData,
-      allowedPositions: typeof value === 'string' ? value.split(',') : value,
+      subtoolPositionIds: typeof value === 'string' ? value.split(',') : value,
     })
   }
 
@@ -327,6 +355,7 @@ const MaterialMaster: React.FC = () => {
               onChange={(e) =>
                 setFormData({ ...formData, materialCode: e.target.value })
               }
+              required
               fullWidth
             />
             <TextField
@@ -335,24 +364,25 @@ const MaterialMaster: React.FC = () => {
               onChange={(e) =>
                 setFormData({ ...formData, materialName: e.target.value })
               }
+              required
               fullWidth
             />
             <FormControl fullWidth required>
               <InputLabel>Material Type</InputLabel>
               <Select
-                value={formData.materialType}
+                value={formData.materialTypeId}
                 label="Material Type"
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    materialType: e.target.value as string,
+                    materialTypeId: e.target.value as string,
                   })
                 }
               >
                 {materialTypes.map((type) => (
                   <MenuItem
                     key={type.material_type_id}
-                    value={type.material_type}
+                    value={type.material_type_id}
                   >
                     {type.material_type}
                   </MenuItem>
@@ -363,21 +393,30 @@ const MaterialMaster: React.FC = () => {
               <InputLabel>Subtool Positions</InputLabel>
               <Select
                 multiple
-                value={formData.allowedPositions}
+                value={formData.subtoolPositionIds}
                 onChange={handlePositionChange}
                 input={<OutlinedInput label="Subtool Positions" />}
                 renderValue={(selected) => (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selected.map((value) => (
-                      <Chip key={value} label={value} size="small" />
-                    ))}
+                    {selected.map((value) => {
+                      const position = subtoolPositions.find(
+                        (p) => p.subtool_position_id === value
+                      )
+                      return (
+                        <Chip
+                          key={value}
+                          label={position?.subtool_position || value}
+                          size="small"
+                        />
+                      )
+                    })}
                   </Box>
                 )}
               >
                 {subtoolPositions.map((position) => (
                   <MenuItem
                     key={position.subtool_position_id}
-                    value={position.subtool_position}
+                    value={position.subtool_position_id}
                   >
                     {position.subtool_position}
                   </MenuItem>
