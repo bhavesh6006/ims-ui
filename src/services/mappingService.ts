@@ -15,7 +15,7 @@ export const mappingService = {
       ...(search && { search }),
     })
     const response = await api.get<PaginatedResponse<TrollyMaterialMapping>>(
-      `/mappings?${params.toString()}`
+      `/trolley-material-mapping?${params.toString()}`
     )
     return response.data
   },
@@ -33,14 +33,17 @@ export const mappingService = {
       'id' | 'createdAt' | 'updatedAt' | 'version'
     >
   ) => {
-    const response = await api.post<TrollyMaterialMapping>('/mappings', data)
+    const response = await api.post<TrollyMaterialMapping>(
+      '/trolley-material-mapping',
+      data
+    )
     return response.data
   },
 
   // Update mapping
   update: async (id: string, data: Partial<TrollyMaterialMapping>) => {
     const response = await api.put<TrollyMaterialMapping>(
-      `/mappings/${id}`,
+      `/trolley-material-mapping/${id}`,
       data
     )
     return response.data
@@ -48,7 +51,8 @@ export const mappingService = {
 
   // Delete mapping
   delete: async (id: string) => {
-    await api.delete(`/mappings/${id}`)
+    const response = await api.delete(`/trolley-material-mapping/${id}`)
+    return response.data
   },
 
   // Get material-trolley mapping by material code and trolley code

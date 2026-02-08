@@ -1,7 +1,7 @@
 export { default as api } from './api'
 export { trollyService } from './trollyService'
 export { materialService } from './materialService'
-export { mappingService } from './mappingService'
+export * from './mappingService'
 export { storeLocationService } from './storeLocationService'
 export { rfidAntennaService } from './rfidAntennaService'
 export { workOrderService } from './workOrderService'

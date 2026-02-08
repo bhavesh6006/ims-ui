@@ -7,10 +7,16 @@ export interface TrolleyType {
   updated_at?: string
 }
 
+interface TrolleyTypeResponse {
+  success: boolean
+  count: number
+  data: TrolleyType[]
+}
+
 export const trolleyTypeService = {
   getAll: async (): Promise<TrolleyType[]> => {
-    const response = await api.get('/trolly-types')
-    return response.data
+    const response = await api.get<TrolleyTypeResponse>('/trolly-types')
+    return response.data.data
   },
 
   getById: async (id: string): Promise<TrolleyType> => {
