@@ -1,6 +1,19 @@
 import api from './api'
 import type { TrollyMaterialMapping, PaginatedResponse } from '../types'
 
+export interface MaterialTrolleyMapping extends TrollyMaterialMapping {
+  material?: {
+    material_id: number
+    material_code: string
+    material_name: string
+  }
+  trolleyType?: {
+    trolley_type_id: number
+    trolly_type: string
+  }
+  max_quantity: number
+}
+
 // Trolly Material Mapping Service - Manage compatibility rules
 export const mappingService = {
   // Get all mappings with pagination
@@ -55,15 +68,20 @@ export const mappingService = {
     return response.data
   },
 
-  // Get material-trolley mapping by material code and trolley code
+  // Get material-trolley mapping by material_id and trolley_type_id
   getMaterialTrolleyMapping: async (
-    materialCode: string,
-    trolleyCode: string
+    materialId: string,
+    trolleyTypeId: string
   ) => {
-    const response = await api.get<{ quantity: number; maxCapacity: number }>(
-      `/mappings/material-trolley/${materialCode}/${trolleyCode}`
-    )
-    return response
+    const params = new URLSearchParams({
+      material_id: materialId,
+      trolley_type_id: trolleyTypeId,
+    })
+    const response = await api.get<{
+      success: boolean
+      data: MaterialTrolleyMapping
+    }>(`/trolley-material-mapping/by-material-and-type?${params.toString()}`)
+    return response.data
   },
 }
 

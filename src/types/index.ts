@@ -4,17 +4,19 @@
 export interface Trolly extends Record<string, unknown> {
   trolley_id: string
   trolley_code: string
-  trolley_type: string
-  barcode: string
-  qr_code: string
-  length_mm: string
-  width_mm: string
-  height_mm: string
-  volume_mm3: string
-  notes: string
-  status: string
-  createdAt: string
-  updatedAt: string
+  trolly_type_id: string // Note: API uses 'trolly_type_id' not 'trolley_type_id'
+  trolley_image?: string | null
+  barcode?: string
+  qr_code?: string
+  length_mm?: string
+  width_mm?: string
+  height_mm?: string
+  volume_mm3?: string
+  notes?: string
+  status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE'
+  createdAt?: string
+  updatedAt?: string
+  trolly_type?: string // Note: API uses 'trolly_type' not 'trolley_type'
 }
 
 // Material Master
@@ -169,6 +171,7 @@ export interface OperatorWorkOrder {
   date: string
   tool: string
   subTool: string // Material Code
+  materialId?: string // Add material_id field
   doorColour: string
   handle: string
   micom: string
@@ -227,7 +230,7 @@ export interface User {
 // API Response Types
 export interface ApiResponse<T> {
   success: boolean
-  data?: T
+  data?: T | { data: T } // Handle both direct and nested data
   message?: string
   error?: string
 }

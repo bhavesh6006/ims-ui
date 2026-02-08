@@ -1,114 +1,97 @@
 import api from './api'
-import type { WorkOrder, PaginatedResponse, ApiResponse } from '../types'
+import type { ApiResponse } from '../types'
 
-// Work Order Service - Manage work orders
-export const workOrderService = {
-  // Get all work orders with pagination
+export interface WorkOrderResponse {
+  id: string
+  work_order_number: string
+  sr_no: number
+  date: string
+  tool: string
+  sub_tool: string
+  material_id?: string
+  door_colour: string
+  handle: string
+  micom: string
+  lock1: string
+  disp_type: string
+  input_plan: number
+  output_plan: number
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'
+  created_at: string
+  updated_at: string
+  created_by: string
+  updated_by?: string | null
+}
+
+export interface WorkOrderListResponse {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  workOrders: WorkOrderResponse[]
+}
+
+export interface WorkOrderFilters {
+  status?: string
+  date_from?: string
+  date_to?: string
+  tool?: string
+  sub_tool?: string
+  page?: number
+  limit?: number
+}
+
+export interface UpdateWorkOrderPayload {
+  sr_no?: number
+  date?: string
+  tool?: string
+  sub_tool?: string
+  door_colour?: string
+  handle?: string
+  micom?: string
+  lock1?: string
+  disp_type?: string
+  input_plan?: number
+  output_plan?: number
+  status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'
+  updated_by?: string
+}
+
+const workOrderService = {
+  // Fetch all work orders with optional filters
   getAll: async (
-    page: number = 1,
-    pageSize: number = 10,
-    search: string = '',
-    status?: string
-  ) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: pageSize.toString(),
-      ...(search && { search }),
-      ...(status && { status }),
-    })
-    const response = await api.get<PaginatedResponse<WorkOrder>>(
-      `/work-orders?${params.toString()}`
-    )
-    return response.data
-  },
+    filters?: WorkOrderFilters
+  ): Promise<ApiResponse<WorkOrderListResponse>> => {
+    const params = new URLSearchParams()
 
-  // Get work order by ID
-  getById: async (id: string) => {
-    const response = await api.get<WorkOrder>(`/work-orders/${id}`)
-    return response.data
-  },
+    if (filters?.status) params.append('status', filters.status)
+    if (filters?.date_from) params.append('date_from', filters.date_from)
+    if (filters?.date_to) params.append('date_to', filters.date_to)
+    if (filters?.tool) params.append('tool', filters.tool)
+    if (filters?.sub_tool) params.append('sub_tool', filters.sub_tool)
+    if (filters?.page) params.append('page', String(filters.page))
+    if (filters?.limit) params.append('limit', String(filters.limit))
 
-  // Get work order by work order number
-  getByWorkOrderNumber: async (workOrderNumber: string) => {
-    const response = await api.get<ApiResponse<WorkOrder>>(
-      `/work-orders/number/${workOrderNumber}`
-    )
-    return response.data
-  },
+    const queryString = params.toString()
+    const url = queryString ? `/work-orders?${queryString}` : '/work-orders'
 
-  // Get open work orders (for operator selection)
-  getOpen: async () => {
-    const response =
-      await api.get<ApiResponse<WorkOrder[]>>('/work-orders/open')
-    return response.data
-  },
-
-  // Get work orders by status
-  getByStatus: async (status: string) => {
-    const response = await api.get<ApiResponse<WorkOrder[]>>(
-      `/work-orders/status/${status}`
-    )
-    return response.data
-  },
-
-  // Get work orders by classification
-  getByClassification: async (classification: 'SFG' | 'FG') => {
-    const response = await api.get<ApiResponse<WorkOrder[]>>(
-      `/work-orders/classification/${classification}`
-    )
-    return response.data
-  },
-
-  // Create new work order
-  create: async (data: Omit<WorkOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const response = await api.post<WorkOrder>('/work-orders', data)
+    const response = await api.get(url)
     return response.data
   },
 
   // Update work order
-  update: async (id: string, data: Partial<WorkOrder>) => {
-    const response = await api.put<WorkOrder>(`/work-orders/${id}`, data)
+  update: async (
+    id: string,
+    payload: UpdateWorkOrderPayload
+  ): Promise<ApiResponse<WorkOrderResponse>> => {
+    const response = await api.put(`/work-orders/${id}`, payload)
     return response.data
   },
 
-  // Update work order status
-  updateStatus: async (id: string, status: string) => {
-    const response = await api.patch<ApiResponse<WorkOrder>>(
-      `/work-orders/${id}/status`,
-      { status }
-    )
+  // Get single work order by ID
+  getById: async (id: string): Promise<ApiResponse<WorkOrderResponse>> => {
+    const response = await api.get(`/work-orders/${id}`)
     return response.data
-  },
-
-  // Cancel work order
-  cancel: async (id: string, reason?: string) => {
-    const response = await api.patch<ApiResponse<WorkOrder>>(
-      `/work-orders/${id}/cancel`,
-      { reason }
-    )
-    return response.data
-  },
-
-  // Complete work order
-  complete: async (id: string) => {
-    const response = await api.patch<ApiResponse<WorkOrder>>(
-      `/work-orders/${id}/complete`,
-      {}
-    )
-    return response.data
-  },
-
-  // Get work order metadata (for operator loading)
-  getMetadata: async (id: string) => {
-    const response = await api.get<ApiResponse<WorkOrder>>(
-      `/work-orders/${id}/metadata`
-    )
-    return response.data
-  },
-
-  // Delete work order
-  delete: async (id: string) => {
-    await api.delete(`/work-orders/${id}`)
   },
 }
 

@@ -1,5 +1,5 @@
 import api from './api'
-import type { Material, PaginatedResponse } from '../types'
+import type { Material, PaginatedResponse, ApiResponse } from '../types'
 
 // Material Service - Manage materials
 export const materialService = {
@@ -23,6 +23,14 @@ export const materialService = {
   // Get material by ID
   getById: async (id: string) => {
     const response = await api.get<Material>(`/materials/${id}`)
+    return response.data
+  },
+
+  // Get material by code
+  getByCode: async (materialCode: string): Promise<ApiResponse<Material>> => {
+    const response = await api.get<ApiResponse<Material>>(
+      `/materials/code/${materialCode}`
+    )
     return response.data
   },
 

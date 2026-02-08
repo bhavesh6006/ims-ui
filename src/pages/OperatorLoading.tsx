@@ -25,99 +25,23 @@ import ScannerIcon from '@mui/icons-material/QrCodeScanner'
 import SearchIcon from '@mui/icons-material/Search'
 import CancelIcon from '@mui/icons-material/Cancel'
 import {
-  loadingService,
   trollyService,
   mappingService,
   materialStockService,
+  workOrderService,
+  materialService,
 } from '../services'
 import { Alert } from '../components/molecules'
-import type { Trolly, OperatorWorkOrder } from '../types'
-
-// Test data for work orders
-const mockWorkOrders: OperatorWorkOrder[] = [
-  {
-    id: '1',
-    srNo: 1,
-    workOrderNumber: 'WO-2026-001',
-    date: '2026-02-01',
-    tool: 'Tool A',
-    subTool: 'MT-A-001', // Material Code
-    doorColour: 'White',
-    handle: 'Handle-X',
-    micom: 'MC-100',
-    lock1: 'Lock-A1',
-    dispType: 'Type-1',
-    inputPlan: 100,
-    outputPlan: 0,
-  },
-  {
-    id: '2',
-    srNo: 2,
-    workOrderNumber: 'WO-2026-002',
-    date: '2026-02-02',
-    tool: 'Tool B',
-    subTool: 'MT-B-002',
-    doorColour: 'Black',
-    handle: 'Handle-Y',
-    micom: 'MC-200',
-    lock1: 'Lock-B2',
-    dispType: 'Type-2',
-    inputPlan: 150,
-    outputPlan: 50,
-  },
-  {
-    id: '3',
-    srNo: 3,
-    workOrderNumber: 'WO-2026-003',
-    date: '2026-02-02',
-    tool: 'Tool C',
-    subTool: 'MT-C-003',
-    doorColour: 'Silver',
-    handle: 'Handle-Z',
-    micom: 'MC-300',
-    lock1: 'Lock-C3',
-    dispType: 'Type-1',
-    inputPlan: 80,
-    outputPlan: 0,
-  },
-  {
-    id: '4',
-    srNo: 4,
-    workOrderNumber: 'WO-2026-004',
-    date: '2026-02-03',
-    tool: 'Tool A',
-    subTool: 'MT-A-004',
-    doorColour: 'Grey',
-    handle: 'Handle-X',
-    micom: 'MC-400',
-    lock1: 'Lock-A4',
-    dispType: 'Type-3',
-    inputPlan: 120,
-    outputPlan: 120,
-  },
-  {
-    id: '5',
-    srNo: 5,
-    workOrderNumber: 'WO-2026-005',
-    date: '2026-02-03',
-    tool: 'Tool D',
-    subTool: 'MT-D-005',
-    doorColour: 'Brown',
-    handle: 'Handle-W',
-    micom: 'MC-500',
-    lock1: 'Lock-D5',
-    dispType: 'Type-2',
-    inputPlan: 90,
-    outputPlan: 88,
-  },
-]
+import type { Trolly } from '../types'
+import type { WorkOrderResponse } from '../services/workOrderService'
+import type { MaterialTrolleyMapping } from '../services/mappingService'
 
 const OperatorLoading: React.FC = () => {
   const [operatorWorkOrders, setOperatorWorkOrders] = useState<
-    OperatorWorkOrder[]
+    WorkOrderResponse[]
   >([])
   const [selectedOperatorWO, setSelectedOperatorWO] =
-    useState<OperatorWorkOrder | null>(null)
+    useState<WorkOrderResponse | null>(null)
   const [trolleyCode, setTrolleyCode] = useState('')
   const [scannedTrolley, setScannedTrolley] = useState<Trolly | null>(null)
   const [loadingType, setLoadingType] = useState('full')
@@ -131,23 +55,40 @@ const OperatorLoading: React.FC = () => {
     message: '',
     severity: 'success' as 'success' | 'error',
   })
+  const [mappingData, setMappingData] = useState<MaterialTrolleyMapping | null>(
+    null
+  )
+  const [loading, setLoading] = useState(false)
 
   const showAlert = (message: string, severity: 'success' | 'error') => {
     setAlert({ open: true, message, severity })
   }
 
+  const fetchWorkOrders = async (filters?: Record<string, unknown>) => {
+    try {
+      setLoading(true)
+      const response = await workOrderService.getAll(filters)
+      if (response.success && response.data) {
+        setOperatorWorkOrders(response.data.workOrders)
+      }
+    } catch (error) {
+      showAlert('Failed to load work orders', 'error')
+      console.error('Work order fetch error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Load operator work orders on component mount
   useEffect(() => {
-    // Simulate API call - later replace with actual API
-    setTimeout(() => {
-      setOperatorWorkOrders(mockWorkOrders)
-    }, 500)
+    fetchWorkOrders()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleSelectWorkOrder = (workOrder: OperatorWorkOrder) => {
+  const handleSelectWorkOrder = (workOrder: WorkOrderResponse) => {
     setSelectedOperatorWO(workOrder)
     setShowLoadingScreen(true)
-    showAlert(`Work Order ${workOrder.workOrderNumber} selected`, 'success')
+    showAlert(`Work Order ${workOrder.work_order_number} selected`, 'success')
   }
 
   const handleCancelLoading = () => {
@@ -179,44 +120,85 @@ const OperatorLoading: React.FC = () => {
     }
 
     try {
-      const response = await trollyService.scan(trolleyCode)
-      setScannedTrolley(response.data || null)
+      const trolleyResponse = await trollyService.scan(trolleyCode)
+      const trolleyData = (trolleyResponse.data.data ||
+        trolleyResponse.data) as Trolly
+
+      if (!trolleyData) {
+        showAlert('Trolley not found', 'error')
+        return
+      }
+
+      setScannedTrolley(trolleyData)
       showAlert('Trolley scanned successfully', 'success')
 
-      // Fetch material-trolley mapping
-      if (selectedOperatorWO) {
-        await fetchMaterialTrolleyMapping(
-          selectedOperatorWO.subTool,
-          trolleyCode
-        )
+      const trolleyTypeId = trolleyData.trolly_type_id
+
+      // Fetch material details by material code
+      if (selectedOperatorWO?.sub_tool && trolleyTypeId) {
+        try {
+          const materialResponse = await materialService.getByCode(
+            selectedOperatorWO.sub_tool
+          )
+          if (materialResponse.success && materialResponse.data) {
+            const fetchedMaterialId = materialResponse.data.material_id
+
+            // Now fetch mapping with the correct material_id
+            await fetchMaterialTrolleyMapping(
+              String(fetchedMaterialId),
+              String(trolleyTypeId)
+            )
+          } else {
+            showAlert('Material not found', 'error')
+          }
+        } catch (error) {
+          showAlert('Failed to fetch material details', 'error')
+          console.error('Material fetch error:', error)
+        }
+      } else {
+        showAlert('Missing material code or trolley type information', 'error')
       }
-    } catch {
-      showAlert('Trolley not found', 'error')
+    } catch (error) {
+      showAlert('Failed to scan trolley', 'error')
+      console.error('Trolley scan error:', error)
     }
   }
 
   const fetchMaterialTrolleyMapping = async (
-    materialCode: string,
-    trolleyCode: string
+    materialId: string,
+    trolleyTypeId: string
   ) => {
     try {
       const response = await mappingService.getMaterialTrolleyMapping(
-        materialCode,
-        trolleyCode
+        materialId,
+        trolleyTypeId
       )
-      if (response.data && response.data.quantity) {
-        setMappedQuantity(response.data.quantity)
+      if (response.success && response.data) {
+        setMappingData(response.data)
+        setMappedQuantity(response.data.max_quantity || 0)
         showAlert(
-          `Mapping found: ${response.data.quantity} units available`,
+          `Mapping found: Max ${response.data.max_quantity} units for ${response.data.trolleyType?.trolly_type}`,
           'success'
         )
+      } else {
+        showAlert(
+          'No mapping found for this material-trolley type combination',
+          'error'
+        )
+        setMappedQuantity(0)
+        setMappingData(null)
       }
-    } catch {
-      showAlert(
-        'No mapping found for this material-trolley combination',
-        'error'
-      )
+    } catch (error: unknown) {
+      const errorMessage =
+        error && typeof error === 'object' && 'response' in error
+          ? (error.response as { data?: { message?: string } })?.data
+              ?.message ||
+            'No mapping found for this material-trolley type combination'
+          : 'No mapping found for this material-trolley type combination'
+      showAlert(errorMessage, 'error')
       setMappedQuantity(0)
+      setMappingData(null)
+      console.error('Material mapping error:', error)
     }
   }
 
@@ -224,23 +206,30 @@ const OperatorLoading: React.FC = () => {
   const getFilteredWorkOrders = () => {
     let filtered = operatorWorkOrders
 
-    // Filter by tab (Pending/Closed)
     if (activeTab === 0) {
-      // Pending/Balance: outputPlan < inputPlan
-      filtered = filtered.filter((wo) => wo.outputPlan < wo.inputPlan)
+      // Pending/Balance: status is PENDING or IN_PROGRESS and output_plan < input_plan
+      filtered = filtered.filter(
+        (wo) =>
+          (wo.status === 'PENDING' || wo.status === 'IN_PROGRESS') &&
+          wo.output_plan < wo.input_plan
+      )
     } else {
-      // Closed: outputPlan >= inputPlan
-      filtered = filtered.filter((wo) => wo.outputPlan >= wo.inputPlan)
+      // Closed: status is COMPLETED or CLOSED or output_plan >= input_plan
+      filtered = filtered.filter(
+        (wo) =>
+          wo.status === 'COMPLETED' ||
+          wo.status === 'CLOSED' ||
+          wo.output_plan >= wo.input_plan
+      )
     }
 
-    // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(
         (wo) =>
           wo.date.toLowerCase().includes(query) ||
-          wo.subTool.toLowerCase().includes(query) ||
-          wo.workOrderNumber.toLowerCase().includes(query)
+          wo.sub_tool.toLowerCase().includes(query) ||
+          wo.work_order_number.toLowerCase().includes(query)
       )
     }
 
@@ -260,7 +249,7 @@ const OperatorLoading: React.FC = () => {
 
     if (loadingType === 'partial' && partialQuantity > mappedQuantity) {
       showAlert(
-        `Quantity cannot exceed mapped quantity (${mappedQuantity})`,
+        `Quantity cannot exceed maximum quantity (${mappedQuantity})`,
         'error'
       )
       return
@@ -269,65 +258,57 @@ const OperatorLoading: React.FC = () => {
     try {
       const loadedQuantity =
         loadingType === 'full' ? mappedQuantity : partialQuantity
-      const newOutputPlan = selectedOperatorWO.outputPlan + loadedQuantity
+      const newOutputPlan = selectedOperatorWO.output_plan + loadedQuantity
+      const newInputPlan = selectedOperatorWO.input_plan - loadedQuantity
 
-      // Create loading record
-      const loadingPayload = {
-        trollyId: scannedTrolley.trolley_id,
-        workOrderId: selectedOperatorWO.id,
-        workOrderNumber: selectedOperatorWO.workOrderNumber,
-        doorTypes: [selectedOperatorWO.tool],
-        loadingType: (loadingType === 'full' ? 'Full' : 'Partial') as
-          | 'Full'
-          | 'Partial',
-        loadedQuantity: loadedQuantity,
-        maxCapacity: selectedOperatorWO.inputPlan,
-        operatorId: 'current-user-id', // TODO: Get from auth context
-        operatorName: 'Current User', // TODO: Get from auth context
-        timestamp: new Date().toISOString(),
-        status: 'Loaded' as const,
+      // Determine new status
+      let newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' =
+        selectedOperatorWO.status
+      if (newInputPlan === 0) {
+        newStatus = 'CLOSED'
+      } else if (newOutputPlan > 0) {
+        newStatus = 'IN_PROGRESS'
       }
-
-      await loadingService.createLoading(loadingPayload)
-
-      // Update work order output plan
-      // TODO: Add API call to update work order
-      // await workOrderService.updateOutputPlan(selectedOperatorWO.id, newOutputPlan)
 
       // Create material stock record
       const materialStockPayload = {
-        materialCode: selectedOperatorWO.subTool,
-        trolleyCode: scannedTrolley.trolley_id,
+        material_code: selectedOperatorWO.sub_tool,
+        trolley_code: scannedTrolley.trolley_code,
         quantity: loadedQuantity,
-        location: '', // Blank for now, will be updated via RFID integration
-        workOrderId: selectedOperatorWO.id,
-        workOrderNumber: selectedOperatorWO.workOrderNumber,
-        loadingType: (loadingType === 'full' ? 'FULL' : 'PARTIAL') as
-          | 'FULL'
-          | 'PARTIAL',
-        loadedBy: 'current-user-id', // TODO: Get from auth context
-        status: 'IN_STOCK' as 'IN_STOCK' | 'IN_TRANSIT' | 'CONSUMED',
+        location: '',
+        work_order_id: selectedOperatorWO.id,
+        work_order_number: selectedOperatorWO.work_order_number,
+        loading_type: loadingType === 'full' ? 'FULL' : 'PARTIAL',
+        loaded_by: 'current-user-id', // TODO: Get from auth context
+        loaded_at: new Date().toISOString(),
+        status: 'IN_STOCK',
+        remarks: `Loaded from trolley ${scannedTrolley.trolley_code} (${scannedTrolley.trolly_type})`,
       }
 
       await materialStockService.createStock(materialStockPayload)
 
+      // Update work order
+      const updatePayload = {
+        input_plan: newInputPlan,
+        output_plan: newOutputPlan,
+        status: newStatus,
+        updated_by: 'current-user-id', // TODO: Get from auth context
+      }
+
+      await workOrderService.update(selectedOperatorWO.id, updatePayload)
+
       showAlert('Loading operation completed successfully', 'success')
 
-      // Update local state
-      setOperatorWorkOrders((prev) =>
-        prev.map((wo) =>
-          wo.id === selectedOperatorWO.id
-            ? { ...wo, outputPlan: newOutputPlan }
-            : wo
-        )
-      )
+      // Refresh work orders list
+      await fetchWorkOrders()
 
       // Reset form
       setTimeout(() => {
         handleCancelLoading()
       }, 2000)
-    } catch {
+    } catch (error) {
       showAlert('Failed to complete loading operation', 'error')
+      console.error('Submit error:', error)
     }
   }
 
@@ -352,7 +333,6 @@ const OperatorLoading: React.FC = () => {
           sx={{ mb: 3 }}
         />
 
-        {/* Tabs for Pending/Closed */}
         <Tabs
           value={activeTab}
           onChange={(_, newValue) => setActiveTab(newValue)}
@@ -362,14 +342,10 @@ const OperatorLoading: React.FC = () => {
           <Tab label="Closed Work Orders" />
         </Tabs>
 
-        {/* Work Orders Table */}
         <TableContainer component={Paper} sx={{ maxHeight: 500 }}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell>
-                  <strong>Sr. No.</strong>
-                </TableCell>
                 <TableCell>
                   <strong>Work Order No.</strong>
                 </TableCell>
@@ -412,9 +388,17 @@ const OperatorLoading: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredOrders.length === 0 ? (
+              {loading ? (
                 <TableRow>
-                  <TableCell colSpan={14} align="center">
+                  <TableCell colSpan={13} align="center">
+                    <Typography variant="body2" color="text.secondary" py={3}>
+                      Loading...
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : filteredOrders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={13} align="center">
                     <Typography variant="body2" color="text.secondary" py={3}>
                       No work orders found
                     </Typography>
@@ -423,21 +407,20 @@ const OperatorLoading: React.FC = () => {
               ) : (
                 filteredOrders.map((wo) => (
                   <TableRow key={wo.id}>
-                    <TableCell>{wo.srNo}</TableCell>
-                    <TableCell>{wo.workOrderNumber}</TableCell>
+                    <TableCell>{wo.work_order_number}</TableCell>
                     <TableCell>{wo.date}</TableCell>
                     <TableCell>{wo.tool}</TableCell>
                     <TableCell>
-                      <strong>{wo.subTool}</strong>
+                      <strong>{wo.sub_tool}</strong>
                     </TableCell>
-                    <TableCell>{wo.doorColour}</TableCell>
+                    <TableCell>{wo.door_colour}</TableCell>
                     <TableCell>{wo.handle}</TableCell>
                     <TableCell>{wo.micom}</TableCell>
                     <TableCell>{wo.lock1}</TableCell>
-                    <TableCell>{wo.dispType}</TableCell>
-                    <TableCell>{wo.inputPlan}</TableCell>
-                    <TableCell>{wo.outputPlan}</TableCell>
-                    <TableCell>{wo.inputPlan - wo.outputPlan}</TableCell>
+                    <TableCell>{wo.disp_type}</TableCell>
+                    <TableCell>{wo.input_plan}</TableCell>
+                    <TableCell>{wo.output_plan}</TableCell>
+                    <TableCell>{wo.input_plan - wo.output_plan}</TableCell>
                     <TableCell>
                       {activeTab === 0 ? (
                         <Button
@@ -469,24 +452,23 @@ const OperatorLoading: React.FC = () => {
 
     return (
       <Box>
-        {/* Work Order Info */}
         <Paper sx={{ p: 2, mb: 3, backgroundColor: 'primary.lighter' }}>
           <Typography variant="h6" color="primary.main" gutterBottom>
-            Selected Work Order: {selectedOperatorWO.workOrderNumber}
+            Selected Work Order: {selectedOperatorWO.work_order_number}
           </Typography>
           <Typography variant="body2">
             Tool: {selectedOperatorWO.tool} | Material Code:{' '}
-            <strong>{selectedOperatorWO.subTool}</strong> | Date:{' '}
+            <strong>{selectedOperatorWO.sub_tool}</strong> | Date:{' '}
             {selectedOperatorWO.date}
           </Typography>
           <Typography variant="body2">
-            Input Plan: {selectedOperatorWO.inputPlan} | Current Output:{' '}
-            {selectedOperatorWO.outputPlan} | Balance:{' '}
-            {selectedOperatorWO.inputPlan - selectedOperatorWO.outputPlan}
+            Input Plan: {selectedOperatorWO.input_plan} | Current Output:{' '}
+            {selectedOperatorWO.output_plan} | Balance:{' '}
+            {selectedOperatorWO.input_plan - selectedOperatorWO.output_plan}
           </Typography>
         </Paper>
 
-        {/* Trolley Scan Section */}
+        {/* ...rest of loading screen remains the same... */}
         {!scannedTrolley ? (
           <Box>
             <Typography variant="h6" gutterBottom>
@@ -534,17 +516,25 @@ const OperatorLoading: React.FC = () => {
         ) : (
           <Box>
             <MuiAlert severity="success" sx={{ mb: 3 }}>
-              Trolley {scannedTrolley.trolley_id} ({scannedTrolley.trolley_type}
-              ) scanned successfully
+              Trolley {scannedTrolley.trolley_code} (Type:{' '}
+              {scannedTrolley.trolly_type}) scanned successfully
             </MuiAlert>
 
-            {mappedQuantity > 0 && (
+            {mappingData && mappedQuantity > 0 && (
               <MuiAlert severity="info" sx={{ mb: 3 }}>
-                Material-Trolley mapping found: {mappedQuantity} units available
+                Material-Trolley Type mapping found: Max {mappedQuantity} units
+                {mappingData.material &&
+                  ` for ${mappingData.material.material_name}`}
               </MuiAlert>
             )}
 
-            {/* Loading Type Selection */}
+            {mappedQuantity === 0 && (
+              <MuiAlert severity="warning" sx={{ mb: 3 }}>
+                No mapping found for material {selectedOperatorWO.sub_tool} with
+                trolley type {scannedTrolley.trolly_type}
+              </MuiAlert>
+            )}
+
             <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
               Select Loading Type
             </Typography>
@@ -581,13 +571,12 @@ const OperatorLoading: React.FC = () => {
                   value={partialQuantity}
                   onChange={(e) => setPartialQuantity(Number(e.target.value))}
                   fullWidth
-                  helperText={`Enter quantity (Max: ${mappedQuantity} units from mapping)`}
+                  helperText={`Enter quantity (Max: ${mappedQuantity} units)`}
                   inputProps={{ min: 1, max: mappedQuantity }}
                 />
               </Box>
             )}
 
-            {/* Confirmation Summary */}
             {(loadingType === 'full' || partialQuantity > 0) && (
               <Paper sx={{ mt: 3, p: 2, backgroundColor: 'success.lighter' }}>
                 <Typography
@@ -600,10 +589,12 @@ const OperatorLoading: React.FC = () => {
                 <Divider sx={{ my: 1 }} />
                 <Box sx={{ display: 'grid', gap: 1 }}>
                   <Typography variant="body2">
-                    Material Code: <strong>{selectedOperatorWO.subTool}</strong>
+                    Material Code:{' '}
+                    <strong>{selectedOperatorWO.sub_tool}</strong>
                   </Typography>
                   <Typography variant="body2">
-                    Trolley: <strong>{scannedTrolley.trolley_id}</strong>
+                    Trolley: <strong>{scannedTrolley.trolley_code}</strong>{' '}
+                    (Type: {scannedTrolley.trolly_type})
                   </Typography>
                   <Typography variant="body2">
                     Loading Type:{' '}
@@ -625,7 +616,7 @@ const OperatorLoading: React.FC = () => {
                   <Typography variant="body2">
                     New Output Plan:{' '}
                     <strong>
-                      {selectedOperatorWO.outputPlan +
+                      {selectedOperatorWO.output_plan +
                         (loadingType === 'full'
                           ? mappedQuantity
                           : partialQuantity)}
@@ -635,7 +626,6 @@ const OperatorLoading: React.FC = () => {
               </Paper>
             )}
 
-            {/* Action Buttons */}
             <Box
               sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}
             >
