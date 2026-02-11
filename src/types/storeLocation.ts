@@ -22,6 +22,8 @@ export interface AntennaMapping {
   status?: 'ACTIVE' | 'INACTIVE'
   created_at?: string
   updated_at?: string
+  antenna_code: string
+  antenna_name: string
   antenna?: {
     antenna_id: string
     antenna_code: string

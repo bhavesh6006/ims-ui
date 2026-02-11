@@ -65,6 +65,8 @@ const StoreLocationMaster: React.FC = () => {
       mapping_id?: string // Add this to track existing mappings
       antenna_id: string
       movement_type: 'IN' | 'OUT'
+      antenna_code?: string
+      antenna_name?: string
     }>
   >([])
 
@@ -123,8 +125,18 @@ const StoreLocationMaster: React.FC = () => {
       // Handle response based on the actual structure
       const locationData = response.data?.data || response.data || []
 
-      setLocations(locationData)
-      setFilteredLocations(locationData)
+      // Preserve antenna_code and antenna_name in antennaMappings
+      const updatedLocations = locationData.map((location: StoreLocation) => ({
+        ...location,
+        antennaMappings: location.antennaMappings?.map((mapping) => ({
+          ...mapping,
+          antenna_code: mapping.antenna?.antenna_code || '',
+          antenna_name: mapping.antenna?.antenna_name || '',
+        })),
+      }))
+
+      setLocations(updatedLocations)
+      setFilteredLocations(updatedLocations)
     } catch (error) {
       console.error('Error loading store locations:', error)
       showAlert('Failed to load store locations', 'error')
@@ -214,6 +226,8 @@ const StoreLocationMaster: React.FC = () => {
         mapping_id: m.mapping_id, // Include mapping_id for existing mappings
         antenna_id: m.antenna_id,
         movement_type: m.movement_type,
+        antenna_code: m.antenna_code, // Use preserved antenna_code
+        antenna_name: m.antenna_name, // Use preserved antenna_name
       })) || []
     )
     loadAntennas()
@@ -257,6 +271,20 @@ const StoreLocationMaster: React.FC = () => {
     const updated = [...antennaMappings]
     updated[index] = { ...updated[index], [field]: value }
     setAntennaMappings(updated)
+  }
+
+  // Add helper function to get available antennas for each row
+  const getAvailableAntennas = (currentIndex: number) => {
+    const selectedAntennaIds = antennaMappings
+      .map((m, idx) => (idx !== currentIndex ? m.antenna_id : null))
+      .filter(Boolean)
+
+    return antennas.filter(
+      (a) =>
+        (a.status === 'ACTIVE' ||
+          a.antenna_id === antennaMappings[currentIndex]?.antenna_id) &&
+        !selectedAntennaIds.includes(a.antenna_id)
+    )
   }
 
   const handleSubmit = async () => {
@@ -579,22 +607,21 @@ const StoreLocationMaster: React.FC = () => {
                                 const antenna = antennas.find(
                                   (a) => a.antenna_id === selected
                                 )
+                                // Display antenna_code and antenna_name for already mapped antennas
                                 return antenna
                                   ? `${antenna.antenna_code} - ${antenna.antenna_name}`
-                                  : selected
+                                  : `${mapping.antenna_code} - ${mapping.antenna_name}`
                               }}
                             >
-                              {antennas
-                                .filter((a) => a.status === 'ACTIVE')
-                                .map((antenna) => (
-                                  <MenuItem
-                                    key={antenna.antenna_id}
-                                    value={antenna.antenna_id}
-                                  >
-                                    {antenna.antenna_code} -{' '}
-                                    {antenna.antenna_name}
-                                  </MenuItem>
-                                ))}
+                              {getAvailableAntennas(index).map((antenna) => (
+                                <MenuItem
+                                  key={antenna.antenna_id}
+                                  value={antenna.antenna_id}
+                                >
+                                  {antenna.antenna_code} -{' '}
+                                  {antenna.antenna_name}
+                                </MenuItem>
+                              ))}
                             </Select>
                           </FormControl>
                         </TableCell>
