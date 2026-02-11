@@ -20,10 +20,17 @@ import {
   Tabs,
   Tab,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
 } from '@mui/material'
 import ScannerIcon from '@mui/icons-material/QrCodeScanner'
 import SearchIcon from '@mui/icons-material/Search'
 import CancelIcon from '@mui/icons-material/Cancel'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import CloseIcon from '@mui/icons-material/Close'
 import {
   trollyService,
   mappingService,
@@ -36,13 +43,30 @@ import type { Trolly } from '../types'
 import type { WorkOrderResponse } from '../services/workOrderService'
 import type { MaterialTrolleyMapping } from '../services/mappingService'
 
+interface MaterialStockEntry {
+  id?: number
+  trolley_code: string
+  material_code: string
+  quantity: number
+  loading_type: string
+  status: string
+  location?: string
+  loaded_at?: string
+  remarks?: string
+  work_order_id?: number
+  work_order_number?: string
+  loaded_by?: string
+  created_at?: string
+  updated_at?: string
+}
+
 const OperatorLoading: React.FC = () => {
   const [operatorWorkOrders, setOperatorWorkOrders] = useState<
     WorkOrderResponse[]
   >([])
   const [selectedOperatorWO, setSelectedOperatorWO] =
     useState<WorkOrderResponse | null>(null)
-  const [trolleyCode, setTrolleyCode] = useState('')
+  const [trolleyQRCode, settrolleyQRCode] = useState('')
   const [scannedTrolley, setScannedTrolley] = useState<Trolly | null>(null)
   const [loadingType, setLoadingType] = useState('full')
   const [partialQuantity, setPartialQuantity] = useState(0)
@@ -59,6 +83,13 @@ const OperatorLoading: React.FC = () => {
     null
   )
   const [loading, setLoading] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [viewingWorkOrder, setViewingWorkOrder] =
+    useState<WorkOrderResponse | null>(null)
+  const [materialStockEntries, setMaterialStockEntries] = useState<
+    MaterialStockEntry[]
+  >([])
+  const [loadingEntries, setLoadingEntries] = useState(false)
 
   const showAlert = (message: string, severity: 'success' | 'error') => {
     setAlert({ open: true, message, severity })
@@ -94,7 +125,7 @@ const OperatorLoading: React.FC = () => {
   const handleCancelLoading = () => {
     setShowLoadingScreen(false)
     setSelectedOperatorWO(null)
-    setTrolleyCode('')
+    settrolleyQRCode('')
     setScannedTrolley(null)
     setLoadingType('full')
     setPartialQuantity(0)
@@ -105,7 +136,7 @@ const OperatorLoading: React.FC = () => {
     // Simulate barcode scanner - in real implementation, this will trigger actual scanner device
     // For now, we'll just focus the input field for manual entry or scanner input
     const input = document.querySelector(
-      'input[name="trolleyCode"]'
+      'input[name="trolleyQRCode"]'
     ) as HTMLInputElement
     if (input) {
       input.focus()
@@ -114,13 +145,13 @@ const OperatorLoading: React.FC = () => {
   }
 
   const handleNextAfterScan = async () => {
-    if (!trolleyCode.trim()) {
+    if (!trolleyQRCode.trim()) {
       showAlert('Please enter a trolley barcode or QR code', 'error')
       return
     }
 
     try {
-      const trolleyResponse = await trollyService.scan(trolleyCode)
+      const trolleyResponse = await trollyService.scan(trolleyQRCode)
       const trolleyData = (trolleyResponse.data.data ||
         trolleyResponse.data) as Trolly
 
@@ -200,6 +231,33 @@ const OperatorLoading: React.FC = () => {
       setMappingData(null)
       console.error('Material mapping error:', error)
     }
+  }
+
+  const handleViewEntries = async (workOrder: WorkOrderResponse) => {
+    setViewingWorkOrder(workOrder)
+    setViewDialogOpen(true)
+    setLoadingEntries(true)
+
+    try {
+      const response = await materialStockService.getByWorkOrder(workOrder.id)
+      if (response.success && response.data) {
+        setMaterialStockEntries(response.data)
+      } else {
+        setMaterialStockEntries([])
+      }
+    } catch (error) {
+      showAlert('Failed to load material stock entries', 'error')
+      console.error('Material stock fetch error:', error)
+      setMaterialStockEntries([])
+    } finally {
+      setLoadingEntries(false)
+    }
+  }
+
+  const handleCloseViewDialog = () => {
+    setViewDialogOpen(false)
+    setViewingWorkOrder(null)
+    setMaterialStockEntries([])
   }
 
   // Filter work orders based on tab and search query
@@ -423,18 +481,40 @@ const OperatorLoading: React.FC = () => {
                     <TableCell>{wo.input_plan - wo.output_plan}</TableCell>
                     <TableCell>
                       {activeTab === 0 ? (
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          size="small"
-                          onClick={() => handleSelectWorkOrder(wo)}
-                        >
-                          Loading
-                        </Button>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="outlined"
+                            color="info"
+                            size="small"
+                            startIcon={<VisibilityIcon />}
+                            onClick={() => handleViewEntries(wo)}
+                          >
+                            View
+                          </Button>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            onClick={() => handleSelectWorkOrder(wo)}
+                          >
+                            Load
+                          </Button>
+                        </Box>
                       ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          Completed
-                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="outlined"
+                            color="info"
+                            size="small"
+                            startIcon={<VisibilityIcon />}
+                            onClick={() => handleViewEntries(wo)}
+                          >
+                            View
+                          </Button>
+                          <Typography variant="body2" color="text.secondary">
+                            Completed
+                          </Typography>
+                        </Box>
                       )}
                     </TableCell>
                   </TableRow>
@@ -468,7 +548,6 @@ const OperatorLoading: React.FC = () => {
           </Typography>
         </Paper>
 
-        {/* ...rest of loading screen remains the same... */}
         {!scannedTrolley ? (
           <Box>
             <Typography variant="h6" gutterBottom>
@@ -476,14 +555,14 @@ const OperatorLoading: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, mt: 3, mb: 3 }}>
               <TextField
-                name="trolleyCode"
-                label="Trolley Code"
-                value={trolleyCode}
-                onChange={(e) => setTrolleyCode(e.target.value)}
+                name="trolleyQRCode"
+                label="Trolley barcode/QR Code"
+                value={trolleyQRCode}
+                onChange={(e) => settrolleyQRCode(e.target.value)}
                 fullWidth
-                placeholder="Enter or scan barcode/QR code"
+                placeholder="Enter or scan Trolley barcode/QR code"
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter' && trolleyCode.trim()) {
+                  if (e.key === 'Enter' && trolleyQRCode.trim()) {
                     handleNextAfterScan()
                   }
                 }}
@@ -500,7 +579,7 @@ const OperatorLoading: React.FC = () => {
                 variant="contained"
                 color="primary"
                 onClick={handleNextAfterScan}
-                disabled={!trolleyCode.trim()}
+                disabled={!trolleyQRCode.trim()}
                 sx={{ minWidth: 120 }}
               >
                 Next
@@ -525,13 +604,6 @@ const OperatorLoading: React.FC = () => {
                 Material-Trolley Type mapping found: Max {mappedQuantity} units
                 {mappingData.material &&
                   ` for ${mappingData.material.material_name}`}
-              </MuiAlert>
-            )}
-
-            {mappedQuantity === 0 && (
-              <MuiAlert severity="warning" sx={{ mb: 3 }}>
-                No mapping found for material {selectedOperatorWO.sub_tool} with
-                trolley type {scannedTrolley.trolly_type}
               </MuiAlert>
             )}
 
@@ -672,6 +744,140 @@ const OperatorLoading: React.FC = () => {
         severity={alert.severity}
         onClose={() => setAlert({ ...alert, open: false })}
       />
+
+      {/* Material Stock Entries Dialog */}
+      <Dialog
+        open={viewDialogOpen}
+        onClose={handleCloseViewDialog}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Typography variant="h6">
+              Material Stock Entries for Work Order:{' '}
+              {viewingWorkOrder?.work_order_number}
+            </Typography>
+            <IconButton onClick={handleCloseViewDialog} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          {viewingWorkOrder && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Material Code: <strong>{viewingWorkOrder.sub_tool}</strong> |
+              Tool: {viewingWorkOrder.tool} | Date: {viewingWorkOrder.date}
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent dividers>
+          {loadingEntries ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography>Loading entries...</Typography>
+            </Box>
+          ) : materialStockEntries.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="body2" color="text.secondary">
+                No material stock entries found for this work order
+              </Typography>
+            </Box>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>
+                      <strong>Trolley Code</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Material Code</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Quantity</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Loading Type</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Status</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Location</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Loaded At</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Remarks</strong>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {materialStockEntries.map((entry, index) => (
+                    <TableRow key={entry.id || index}>
+                      <TableCell>{entry.trolley_code}</TableCell>
+                      <TableCell>{entry.material_code}</TableCell>
+                      <TableCell>{entry.quantity}</TableCell>
+                      <TableCell>{entry.loading_type}</TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1,
+                            bgcolor:
+                              entry.status === 'IN_STOCK'
+                                ? 'success.lighter'
+                                : 'grey.300',
+                            color:
+                              entry.status === 'IN_STOCK'
+                                ? 'success.dark'
+                                : 'text.secondary',
+                          }}
+                        >
+                          {entry.status}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{entry.location || '-'}</TableCell>
+                      <TableCell>
+                        {entry.loaded_at
+                          ? new Date(entry.loaded_at).toLocaleString()
+                          : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            maxWidth: 200,
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title={entry.remarks}
+                        >
+                          {entry.remarks || '-'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseViewDialog} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
