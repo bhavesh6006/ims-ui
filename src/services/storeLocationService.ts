@@ -1,112 +1,54 @@
 import api from './api'
-import type { StoreLocation, PaginatedResponse, ApiResponse } from '../types'
 
-// Store Location Service - Manage store locations
+export interface StoreLocationPayload {
+  store_code: string
+  store_name: string
+  factory_name?: string
+  plant_name?: string
+  hierarchy_level?: string
+  total_area?: number
+  area_unit?: string
+  remarks?: string
+  status?: string
+  antenna_mappings?: Array<{
+    antenna_id: string
+    movement_type: string
+  }>
+}
+
+export interface StoreLocationUpdatePayload extends Partial<StoreLocationPayload> {
+  antenna_mappings_to_add?: Array<{ antenna_id: string; movement_type: string }>
+  antenna_mappings_to_remove?: string[]
+  antenna_mappings_to_update?: Array<{
+    mapping_id: string
+    antenna_id?: string
+    movement_type?: string
+  }>
+}
+
 export const storeLocationService = {
-  // Get all store locations with pagination
-  getAll: async (
-    page: number = 1,
-    pageSize: number = 10,
-    search: string = ''
-  ) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: pageSize.toString(),
-      ...(search && { search }),
-    })
-    const response = await api.get<PaginatedResponse<StoreLocation>>(
-      `/store-locations?${params.toString()}`
-    )
+  async getAll() {
+    const response = await api.get('/store-locations')
     return response.data
   },
 
-  // Get store location by ID
-  getById: async (id: string) => {
-    const response = await api.get<StoreLocation>(`/store-locations/${id}`)
+  async getById(id: string) {
+    const response = await api.get(`/store-locations/${id}`)
     return response.data
   },
 
-  // Get store location by Store Location ID
-  getByStoreLocationId: async (storeLocationId: string) => {
-    const response = await api.get<ApiResponse<StoreLocation>>(
-      `/store-locations/location-id/${storeLocationId}`
-    )
+  async create(data: StoreLocationPayload) {
+    const response = await api.post('/store-locations', data)
     return response.data
   },
 
-  // Get store locations by factory
-  getByFactory: async (factoryName: string) => {
-    const response = await api.get<ApiResponse<StoreLocation[]>>(
-      `/store-locations/factory/${factoryName}`
-    )
+  async update(id: string, data: StoreLocationUpdatePayload) {
+    const response = await api.put(`/store-locations/${id}`, data)
     return response.data
   },
 
-  // Get store locations by plant/building
-  getByPlant: async (plantBuildingName: string) => {
-    const response = await api.get<ApiResponse<StoreLocation[]>>(
-      `/store-locations/plant/${plantBuildingName}`
-    )
-    return response.data
-  },
-
-  // Create new store location
-  create: async (
-    data: Omit<StoreLocation, 'id' | 'createdAt' | 'updatedAt'>
-  ) => {
-    const response = await api.post<StoreLocation>('/store-locations', data)
-    return response.data
-  },
-
-  // Update store location
-  update: async (id: string, data: Partial<StoreLocation>) => {
-    const response = await api.put<StoreLocation>(
-      `/store-locations/${id}`,
-      data
-    )
-    return response.data
-  },
-
-  // Delete store location (soft delete)
-  delete: async (id: string) => {
-    await api.delete(`/store-locations/${id}`)
-  },
-
-  // Get hierarchy structure (factories, plants, stores)
-  getHierarchy: async () => {
-    const response = await api.get<
-      ApiResponse<{ factory: string; plant: string; store: string }[]>
-    >('/store-locations/hierarchy')
-    return response.data
-  },
-
-  // Associate RFID antenna with store location
-  associateRFIDantenna: async (storeLocationId: string, antennaId: string) => {
-    const response = await api.post<ApiResponse<void>>(
-      `/store-locations/${storeLocationId}/rfid-antennas`,
-      {
-        antennaId,
-      }
-    )
-    return response.data
-  },
-
-  // Associate BLE gateway with store location
-  associateBLEgateway: async (storeLocationId: string, gatewayId: string) => {
-    const response = await api.post<ApiResponse<void>>(
-      `/store-locations/${storeLocationId}/ble-gateways`,
-      {
-        gatewayId,
-      }
-    )
-    return response.data
-  },
-
-  // Get ACTIVE store locations
-  getACTIVE: async () => {
-    const response = await api.get<ApiResponse<StoreLocation[]>>(
-      '/store-locations/ACTIVE'
-    )
+  async delete(id: string) {
+    const response = await api.delete(`/store-locations/${id}`)
     return response.data
   },
 }

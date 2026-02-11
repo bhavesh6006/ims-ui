@@ -13,19 +13,17 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Switch,
-  FormControlLabel,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
 import { DataTable, type Column } from '../components/organisms'
 import { SearchBar, Alert } from '../components/molecules'
-import { rfidAntennaService, storeLocationService } from '../services'
-import type { RFIDAntenna, StoreLocation } from '../types'
+import { antennaService } from '../services'
+import type { RFIDAntenna } from '../types'
 
 const RFIDAntennaMaster: React.FC = () => {
   const [antennas, setAntennas] = useState<RFIDAntenna[]>([])
-  const [locations, setLocations] = useState<StoreLocation[]>([])
+
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const [total, setTotal] = useState(0)
@@ -37,39 +35,31 @@ const RFIDAntennaMaster: React.FC = () => {
     message: '',
     severity: 'success' as 'success' | 'error',
   })
+  const [loading, setLoading] = useState(false)
 
   const [formData, setFormData] = useState({
-    antennaId: '',
-    antennaName: '',
-    readerIp: '',
-    readerPort: 0,
-    antennaRole: 'Entry' as 'Entry' | 'Exit' | 'Internal',
-    locationId: '',
-    gateId: '',
-    powerLevel: 30,
-    frequency: 915,
-    orientation: 'Horizontal' as 'Horizontal' | 'Vertical',
-    mountingHeight: 0,
-    isACTIVE: true,
-    maintenanceMode: false,
-    description: '',
-    status: 'ACTIVE' as string,
+    antenna_code: '',
+    antenna_name: '',
+    antenna_type: '' as 'RFID' | 'BLE' | '',
+    reader_id: '',
+    reader_port: '' as string | number,
+    antenna_role: '' as string,
+    frequency_range: '',
+    gain_dbi: '' as string | number,
+    orientation: '' as string,
+    mounting_type: '' as string,
+    tx_power_dbm: '' as string | number,
+    coverage_desc: '',
+    status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE' | 'Maintenance',
+    remarks: '',
   })
 
   const columns: Column[] = [
-    { id: 'antennaId', label: 'Antenna ID' },
-    { id: 'antennaName', label: 'Name' },
-    { id: 'antennaRole', label: 'Role' },
-    {
-      id: 'readerIp',
-      label: 'Reader IP',
-    },
-    { id: 'locationId', label: 'Location' },
-    {
-      id: 'isACTIVE',
-      label: 'ACTIVE',
-      format: (value: boolean) => (value ? 'Yes' : 'No'),
-    },
+    { id: 'antenna_code', label: 'Antenna Code' },
+    { id: 'antenna_name', label: 'Name' },
+    { id: 'antenna_role', label: 'Role' },
+    { id: 'reader_id', label: 'Reader IP' },
+    { id: 'antenna_type', label: 'Type' },
     { id: 'status', label: 'Status' },
   ]
 
@@ -79,50 +69,38 @@ const RFIDAntennaMaster: React.FC = () => {
 
   const loadAntennas = useCallback(async () => {
     try {
-      const response = await rfidAntennaService.getAll(
-        page + 1,
-        pageSize,
-        search
-      )
+      setLoading(true)
+      const response = await antennaService.getAll()
       setAntennas(response.data)
       setTotal(response.total)
     } catch {
       showAlert('Failed to load antennas', 'error')
+    } finally {
+      setLoading(false)
     }
   }, [page, pageSize, search])
 
-  const loadLocations = useCallback(async () => {
-    try {
-      const response = await storeLocationService.getAll(1, 100)
-      setLocations(response.data)
-    } catch {
-      console.error('Failed to load locations')
-    }
-  }, [])
-
   useEffect(() => {
     loadAntennas()
-    loadLocations()
-  }, [loadAntennas, loadLocations])
+  }, [loadAntennas])
 
   const handleAdd = () => {
     setEditingAntenna(null)
     setFormData({
-      antennaId: '',
-      antennaName: '',
-      readerIp: '',
-      readerPort: 5084,
-      antennaRole: 'Entry',
-      locationId: '',
-      gateId: '',
-      powerLevel: 30,
-      frequency: 915,
-      orientation: 'Horizontal',
-      mountingHeight: 0,
-      isACTIVE: true,
-      maintenanceMode: false,
-      description: '',
+      antenna_code: '',
+      antenna_name: '',
+      antenna_type: '',
+      reader_id: '',
+      reader_port: '',
+      antenna_role: '',
+      frequency_range: '',
+      gain_dbi: '',
+      orientation: '',
+      mounting_type: '',
+      tx_power_dbm: '',
+      coverage_desc: '',
       status: 'ACTIVE',
+      remarks: '',
     })
     setModalOpen(true)
   }
@@ -130,83 +108,88 @@ const RFIDAntennaMaster: React.FC = () => {
   const handleEdit = (antenna: RFIDAntenna) => {
     setEditingAntenna(antenna)
     setFormData({
-      antennaId: antenna.antennaId,
-      antennaName: antenna.antennaName,
-      readerIp: antenna.readerId || '',
-      readerPort: antenna.readerPortNumber || 0,
-      antennaRole:
-        antenna.antennaRole === 'Entry' || antenna.antennaRole === 'Exit'
-          ? antenna.antennaRole
-          : 'Internal',
-      locationId: antenna.storeLocationId || '',
-      gateId: antenna.gateId || '',
-      powerLevel: antenna.txPower || 30,
-      frequency: 915,
-      orientation:
-        antenna.orientation === 'Left' || antenna.orientation === 'Right'
-          ? 'Horizontal'
-          : 'Vertical',
-      mountingHeight: 0,
-      isACTIVE: antenna.status === 'ACTIVE',
-      maintenanceMode: antenna.status === 'Maintenance',
-      description: antenna.remarks || '',
-      status: antenna.status === 'Maintenance' ? 'INACTIVE' : antenna.status,
+      antenna_code: antenna.antenna_code,
+      antenna_name: antenna.antenna_name || '',
+      antenna_type: antenna.antenna_type || '',
+      reader_id: antenna.reader_id || '',
+      reader_port: antenna.reader_port ?? '',
+      antenna_role: antenna.antenna_role || '',
+      frequency_range: antenna.frequency_range || '',
+      gain_dbi: antenna.gain_dbi ?? '',
+      orientation: antenna.orientation || '',
+      mounting_type: antenna.mounting_type || '',
+      tx_power_dbm: antenna.tx_power_dbm ?? '',
+      coverage_desc: antenna.coverage_desc || '',
+      status: antenna.status,
+      remarks: antenna.remarks || '',
     })
     setModalOpen(true)
   }
 
   const handleDelete = async (antenna: RFIDAntenna) => {
-    if (window.confirm('Delete antenna?')) {
+    if (
+      window.confirm('Delete antenna? This will Permanently delete record.')
+    ) {
       try {
-        await rfidAntennaService.delete(antenna.id)
+        await antennaService.delete(antenna.antenna_id)
         showAlert('Antenna deleted', 'success')
         loadAntennas()
-      } catch {
-        showAlert('Failed to delete', 'error')
+      } catch (error) {
+        showAlert(
+          error instanceof Error ? error.message : 'Failed to delete',
+          'error'
+        )
       }
     }
   }
 
   const handleSubmit = async () => {
     try {
+      if (!formData.antenna_code) {
+        showAlert('Antenna code is required', 'error')
+        return
+      }
+
+      if (!formData.antenna_type) {
+        showAlert('Antenna type is required', 'error')
+        return
+      }
+
       const payload = {
-        antennaId: formData.antennaId,
-        antennaName: formData.antennaName,
-        antennaType: 'Circular Polarized' as const,
-        frequencyRange: `${formData.frequency} MHz`,
-        gain: 6,
-        readerId: formData.readerIp,
-        readerPortNumber: formData.readerPort,
-        antennaRole:
-          formData.antennaRole === 'Internal'
-            ? ('Inside Zone' as const)
-            : formData.antennaRole,
-        orientation:
-          formData.orientation === 'Horizontal'
-            ? ('Left' as const)
-            : ('Top' as const),
-        mountingType: 'Gate' as const,
-        txPower: formData.powerLevel,
-        coverageArea: `${formData.mountingHeight}m`,
-        storeLocationId: formData.locationId || undefined,
-        gateId: formData.gateId || undefined,
-        status: formData.maintenanceMode
-          ? ('Maintenance' as const)
-          : formData.status,
-        remarks: formData.description,
+        antenna_code: formData.antenna_code,
+        antenna_name: formData.antenna_name,
+        antenna_type: formData.antenna_type,
+        frequency_range: formData.frequency_range,
+        gain_dbi: formData.gain_dbi ? Number(formData.gain_dbi) : undefined,
+        reader_id: formData.reader_id,
+        reader_port: formData.reader_port
+          ? Number(formData.reader_port)
+          : undefined,
+        antenna_role: formData.antenna_role,
+        orientation: formData.orientation,
+        mounting_type: formData.mounting_type,
+        tx_power_dbm: formData.tx_power_dbm
+          ? Number(formData.tx_power_dbm)
+          : undefined,
+        coverage_desc: formData.coverage_desc,
+        status: formData.status,
+        remarks: formData.remarks,
       }
 
       if (editingAntenna) {
-        await rfidAntennaService.update(editingAntenna.id, payload)
+        await antennaService.update(editingAntenna.antenna_id, payload)
         showAlert('Antenna updated', 'success')
       } else {
-        await rfidAntennaService.create(payload)
+        await antennaService.create(payload)
         showAlert('Antenna created', 'success')
       }
       setModalOpen(false)
       loadAntennas()
-    } catch {
-      showAlert('Operation failed', 'error')
+    } catch (error) {
+      showAlert(
+        error instanceof Error ? error.message : 'Operation failed',
+        'error'
+      )
     }
   }
 
@@ -229,14 +212,15 @@ const RFIDAntennaMaster: React.FC = () => {
 
       <DataTable
         columns={columns}
-        data={antennas}
+        data={antennas as Array<Record<string, unknown>>}
         page={page}
         rowsPerPage={pageSize}
         totalRows={total}
         onPageChange={setPage}
         onRowsPerPageChange={setPageSize}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
+        onEdit={(row) => handleEdit(row as RFIDAntenna)}
+        onDelete={(row) => handleDelete(row as RFIDAntenna)}
+        loading={loading}
       />
 
       <Dialog
@@ -257,185 +241,152 @@ const RFIDAntennaMaster: React.FC = () => {
         <DialogContent dividers>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
             <TextField
-              label="Antenna ID"
-              value={formData.antennaId}
+              label="Antenna Code *"
+              value={formData.antenna_code}
               onChange={(e) =>
-                setFormData({ ...formData, antennaId: e.target.value })
+                setFormData({ ...formData, antenna_code: e.target.value })
               }
+              disabled={!!editingAntenna}
               fullWidth
+              required
             />
             <TextField
               label="Antenna Name"
-              value={formData.antennaName}
+              value={formData.antenna_name}
               onChange={(e) =>
-                setFormData({ ...formData, antennaName: e.target.value })
+                setFormData({ ...formData, antenna_name: e.target.value })
               }
               fullWidth
             />
+            <FormControl fullWidth required>
+              <InputLabel>Antenna Type</InputLabel>
+              <Select
+                label="Antenna Type"
+                value={formData.antenna_type}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    antenna_type: e.target.value as 'RFID' | 'BLE',
+                  })
+                }
+              >
+                <MenuItem value="RFID">RFID</MenuItem>
+                <MenuItem value="BLE">BLE</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Frequency Range"
+              value={formData.frequency_range}
+              onChange={(e) =>
+                setFormData({ ...formData, frequency_range: e.target.value })
+              }
+              fullWidth
+              placeholder="e.g., 915 MHz"
+            />
+            <TextField
+              label="Gain (dBi)"
+              type="number"
+              value={formData.gain_dbi}
+              onChange={(e) =>
+                setFormData({ ...formData, gain_dbi: e.target.value })
+              }
+              fullWidth
+              placeholder="Enter gain value"
+            />
             <TextField
               label="Reader IP"
-              value={formData.readerIp}
+              value={formData.reader_id}
               onChange={(e) =>
-                setFormData({ ...formData, readerIp: e.target.value })
+                setFormData({ ...formData, reader_id: e.target.value })
               }
               fullWidth
             />
             <TextField
               label="Reader Port"
               type="number"
-              value={formData.readerPort}
+              value={formData.reader_port}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  readerPort: Number(e.target.value),
-                })
+                setFormData({ ...formData, reader_port: e.target.value })
               }
               fullWidth
+              placeholder="Enter port number"
             />
-            <FormControl fullWidth>
-              <InputLabel>Role</InputLabel>
-              <Select
-                value={formData.antennaRole}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    antennaRole: e.target.value as
-                      | 'Entry'
-                      | 'Exit'
-                      | 'Internal',
-                  })
-                }
-              >
-                <MenuItem value="Entry">Entry</MenuItem>
-                <MenuItem value="Exit">Exit</MenuItem>
-                <MenuItem value="Internal">Internal</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Location</InputLabel>
-              <Select
-                value={formData.locationId}
-                onChange={(e) =>
-                  setFormData({ ...formData, locationId: e.target.value })
-                }
-              >
-                <MenuItem value="">None</MenuItem>
-                {locations.map((loc) => (
-                  <MenuItem key={loc.id} value={loc.locationId}>
-                    {loc.locationName}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
             <TextField
-              label="Gate ID"
-              value={formData.gateId}
+              label="Antenna Role"
+              value={formData.antenna_role}
               onChange={(e) =>
-                setFormData({ ...formData, gateId: e.target.value })
+                setFormData({ ...formData, antenna_role: e.target.value })
               }
               fullWidth
+              placeholder="e.g., Entry, Exit, Internal"
             />
             <TextField
-              label="Power Level (dBm)"
+              label="Orientation"
+              value={formData.orientation}
+              onChange={(e) =>
+                setFormData({ ...formData, orientation: e.target.value })
+              }
+              fullWidth
+              placeholder="e.g., Horizontal, Vertical"
+            />
+            <TextField
+              label="Mounting Type"
+              value={formData.mounting_type}
+              onChange={(e) =>
+                setFormData({ ...formData, mounting_type: e.target.value })
+              }
+              fullWidth
+              placeholder="e.g., Gate, Wall, Ceiling"
+            />
+            <TextField
+              label="TX Power (dBm)"
               type="number"
-              value={formData.powerLevel}
+              value={formData.tx_power_dbm}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  powerLevel: Number(e.target.value),
-                })
+                setFormData({ ...formData, tx_power_dbm: e.target.value })
               }
               fullWidth
-            />
-            <TextField
-              label="Frequency (MHz)"
-              type="number"
-              value={formData.frequency}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  frequency: Number(e.target.value),
-                })
-              }
-              fullWidth
-            />
-            <FormControl fullWidth>
-              <InputLabel>Orientation</InputLabel>
-              <Select
-                value={formData.orientation}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    orientation: e.target.value as 'Horizontal' | 'Vertical',
-                  })
-                }
-              >
-                <MenuItem value="Horizontal">Horizontal</MenuItem>
-                <MenuItem value="Vertical">Vertical</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              label="Mounting Height (m)"
-              type="number"
-              value={formData.mountingHeight}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  mountingHeight: Number(e.target.value),
-                })
-              }
-              fullWidth
+              placeholder="Enter power value"
             />
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>
               <Select
+                label="Status"
                 value={formData.status}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    status: e.target.value as string,
+                    status: e.target.value as
+                      | 'ACTIVE'
+                      | 'INACTIVE'
+                      | 'Maintenance',
                   })
                 }
               >
                 <MenuItem value="ACTIVE">ACTIVE</MenuItem>
                 <MenuItem value="INACTIVE">INACTIVE</MenuItem>
+                <MenuItem value="Maintenance">Maintenance</MenuItem>
               </Select>
             </FormControl>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.isACTIVE}
-                  onChange={(e) =>
-                    setFormData({ ...formData, isACTIVE: e.target.checked })
-                  }
-                />
-              }
-              label="Is ACTIVE"
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.maintenanceMode}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      maintenanceMode: e.target.checked,
-                    })
-                  }
-                />
-              }
-              label="Maintenance Mode"
-            />
             <TextField
-              label="Description"
-              value={formData.description}
+              label="Coverage Description"
+              value={formData.coverage_desc}
               onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
+                setFormData({ ...formData, coverage_desc: e.target.value })
               }
               fullWidth
               multiline
-              rows={3}
-              sx={{ gridColumn: '1 / -1' }}
+              rows={2}
+            />
+            <TextField
+              label="Remarks"
+              value={formData.remarks}
+              onChange={(e) =>
+                setFormData({ ...formData, remarks: e.target.value })
+              }
+              fullWidth
+              multiline
+              rows={2}
             />
           </Box>
         </DialogContent>

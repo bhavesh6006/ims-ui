@@ -101,46 +101,6 @@ export interface StoreLocation {
   updatedAt: string
 }
 
-// RFID Antenna Master
-export interface RFIDAntenna {
-  id: string
-  antennaId: string
-  antennaName: string
-  antennaType: 'Circular Polarized' | 'Linear Polarized'
-  frequencyRange: string
-  gain: number // dBi
-  readerId: string
-  readerIp?: string
-  readerPort?: number
-  readerPortNumber: number
-  antennaRole:
-    | 'Zone A'
-    | 'Zone B'
-    | 'Entry'
-    | 'Exit'
-    | 'Inside Zone'
-    | 'Outside Zone'
-    | 'Neutral'
-    | 'Internal'
-  orientation: 'Left' | 'Right' | 'Top' | 'Floor' | 'Horizontal' | 'Vertical'
-  mountingType: 'Gate' | 'Dock Door' | 'Ceiling' | 'Zone'
-  mountingHeight?: number
-  txPower: number // dBm
-  powerLevel?: number
-  frequency?: number
-  coverageArea?: string
-  storeLocationId?: string
-  locationId?: string
-  gateId?: string
-  isACTIVE?: boolean
-  maintenanceMode?: boolean
-  status: string | 'Maintenance'
-  remarks?: string
-  description?: string
-  createdAt: string
-  updatedAt: string
-}
-
 // Work Order
 export interface WorkOrder {
   id: string
@@ -242,3 +202,11 @@ export interface PaginatedResponse<T> {
   pageSize: number
   totalPages: number
 }
+
+export type {
+  RFIDAntenna,
+  CreateRFIDAntennaPayload,
+  UpdateRFIDAntennaPayload,
+} from './rfidAntenna'
+
+export * from './storeLocation'

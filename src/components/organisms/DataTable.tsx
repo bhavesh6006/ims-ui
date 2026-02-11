@@ -8,12 +8,10 @@ import {
   TableRow,
   TablePagination,
   Paper,
-  IconButton,
   Box,
+  Typography,
 } from '@mui/material'
-import EditIcon from '@mui/icons-material/Edit'
-import DeleteIcon from '@mui/icons-material/Delete'
-import VisibilityIcon from '@mui/icons-material/Visibility'
+import { EditButton, DeleteButton, ViewButton } from '../atoms'
 
 export interface Column {
   id: string
@@ -35,13 +33,14 @@ interface DataTableProps<T = Record<string, unknown>> {
   onDelete?: (row: T) => void
   onView?: (row: T) => void
   showActions?: boolean
+  loading?: boolean
 }
 
 const DataTable = <
   T extends Record<string, unknown> = Record<string, unknown>,
 >({
   columns,
-  data,
+  data = [],
   page,
   rowsPerPage,
   totalRows,
@@ -51,8 +50,11 @@ const DataTable = <
   onDelete,
   onView,
   showActions = true,
+  loading = false,
 }: DataTableProps<T>) => {
-  // Reset to first page if current page is out of bounds
+  const safeData = Array.isArray(data) ? data : []
+  const totalColumns = columns.length + (showActions ? 1 : 0)
+
   useEffect(() => {
     const maxPage = Math.max(0, Math.ceil(totalRows / rowsPerPage) - 1)
     if (page > maxPage && totalRows > 0) {
@@ -90,57 +92,57 @@ const DataTable = <
             </TableRow>
           </TableHead>
           <TableBody>
-            {data.map((row, index) => (
-              <TableRow hover key={index}>
-                {columns.map((column) => {
-                  const value = row[column.id]
-                  return (
-                    <TableCell key={column.id} align={column.align}>
-                      {
-                        (column.format
-                          ? column.format(value, row)
-                          : value) as React.ReactNode
-                      }
-                    </TableCell>
-                  )
-                })}
-                {showActions && (
-                  <TableCell align="center">
-                    <Box
-                      sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}
-                    >
-                      {onView && (
-                        <IconButton
-                          size="small"
-                          onClick={() => onView(row)}
-                          color="info"
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                      {onEdit && (
-                        <IconButton
-                          size="small"
-                          onClick={() => onEdit(row)}
-                          color="primary"
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                      {onDelete && (
-                        <IconButton
-                          size="small"
-                          onClick={() => onDelete(row)}
-                          color="error"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </Box>
-                  </TableCell>
-                )}
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={totalColumns} align="center">
+                  <Typography variant="body2" color="text.secondary" py={3}>
+                    Loading...
+                  </Typography>
+                </TableCell>
               </TableRow>
-            ))}
+            ) : safeData.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={totalColumns} align="center">
+                  <Typography variant="body2" color="text.secondary" py={3}>
+                    No data available
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              safeData.map((row, index) => (
+                <TableRow hover key={index}>
+                  {columns.map((column) => {
+                    const value = row[column.id]
+                    return (
+                      <TableCell key={column.id} align={column.align}>
+                        {
+                          (column.format
+                            ? column.format(value, row)
+                            : value) as React.ReactNode
+                        }
+                      </TableCell>
+                    )
+                  })}
+                  {showActions && (
+                    <TableCell align="center">
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'center',
+                          gap: 1,
+                        }}
+                      >
+                        {onView && <ViewButton onClick={() => onView(row)} />}
+                        {onEdit && <EditButton onClick={() => onEdit(row)} />}
+                        {onDelete && (
+                          <DeleteButton onClick={() => onDelete(row)} />
+                        )}
+                      </Box>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </MuiTable>
       </TableContainer>

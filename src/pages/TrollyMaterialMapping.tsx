@@ -13,12 +13,11 @@ import {
   TablePagination,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
-import EditIcon from '@mui/icons-material/Edit'
-import VisibilityIcon from '@mui/icons-material/Visibility'
 import { SearchBar, Alert } from '../components/molecules'
 import { mappingService } from '../services'
 import AddEditMappingModal from '../components/organisms/AddEditMappingModal'
 import ViewMappingModal from '../components/organisms/ViewMappingModal'
+import { EditButton, ViewButton } from '../components/atoms'
 import type { TrolleyTypeMapping, MappingItem } from '../types/mapping'
 
 const TrollyMaterialMapping: React.FC = () => {
@@ -37,6 +36,7 @@ const TrollyMaterialMapping: React.FC = () => {
     message: '',
     severity: 'success' as 'success' | 'error',
   })
+  const [loading, setLoading] = useState(false)
 
   const showAlert = (message: string, severity: 'success' | 'error') => {
     setAlert({ open: true, message, severity })
@@ -44,6 +44,7 @@ const TrollyMaterialMapping: React.FC = () => {
 
   const loadMappings = useCallback(async () => {
     try {
+      setLoading(true)
       const response = await mappingService.getAll(page + 1, pageSize, search)
 
       // Group mappings by trolley type
@@ -76,6 +77,8 @@ const TrollyMaterialMapping: React.FC = () => {
       setTotal(Object.keys(groupedMappings).length)
     } catch {
       showAlert('Failed to load mappings', 'error')
+    } finally {
+      setLoading(false)
     }
   }, [page, pageSize, search])
 
@@ -157,7 +160,15 @@ const TrollyMaterialMapping: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {mappings.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={13} align="center">
+                  <Typography variant="body2" color="text.secondary" py={3}>
+                    Loading...
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : mappings.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} align="center">
                   <Typography
@@ -182,22 +193,8 @@ const TrollyMaterialMapping: React.FC = () => {
                         justifyContent: 'flex-end',
                       }}
                     >
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<VisibilityIcon />}
-                        onClick={() => handleView(mapping)}
-                      >
-                        View
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<EditIcon />}
-                        onClick={() => handleEdit(mapping)}
-                      >
-                        Edit
-                      </Button>
+                      <ViewButton onClick={() => handleView(mapping)} />
+                      <EditButton onClick={() => handleEdit(mapping)} />
                     </Box>
                   </TableCell>
                 </TableRow>

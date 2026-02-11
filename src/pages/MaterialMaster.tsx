@@ -68,6 +68,8 @@ const MaterialMaster: React.FC = () => {
     severity: 'success' as 'success' | 'error',
   })
 
+  const [loading, setLoading] = useState(false)
+
   const [formData, setFormData] = useState({
     materialId: '',
     materialName: '',
@@ -107,7 +109,7 @@ const MaterialMaster: React.FC = () => {
       },
     },
     {
-      id: 'length_mm', // Use an existing field
+      id: 'length_mm',
       label: 'Dimensions (mm)',
       format: (value: unknown, row?: unknown) => {
         const material = row as Material
@@ -132,6 +134,7 @@ const MaterialMaster: React.FC = () => {
 
   const loadMaterials = useCallback(async () => {
     try {
+      setLoading(true)
       const response = await materialService.getAll(page + 1, pageSize, search)
 
       // Handle different response structures
@@ -159,6 +162,8 @@ const MaterialMaster: React.FC = () => {
       setTotal(totalCount)
     } catch {
       showAlert('Failed to load materials', 'error')
+    } finally {
+      setLoading(false)
     }
   }, [page, pageSize, search])
 
@@ -330,6 +335,7 @@ const MaterialMaster: React.FC = () => {
         onRowsPerPageChange={setPageSize}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        loading={loading}
       />
 
       <Dialog

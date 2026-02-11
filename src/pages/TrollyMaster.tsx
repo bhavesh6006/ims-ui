@@ -38,6 +38,7 @@ const TrollyMaster: React.FC = () => {
     message: '',
     severity: 'success' as 'success' | 'error',
   })
+  const [loading, setLoading] = useState(false)
 
   const [formData, setFormData] = useState({
     trollyCode: '',
@@ -61,8 +62,7 @@ const TrollyMaster: React.FC = () => {
       label: 'Type',
       format: (value: unknown) => String(value || '-'),
     },
-    { id: 'barcode', label: 'Barcode' },
-    { id: 'qr_code', label: 'QR Code' },
+    { id: 'qr_code', label: 'QR Code / RFID' },
     {
       id: 'dimensions',
       label: 'Dimensions (L×W×H mm)',
@@ -103,11 +103,14 @@ const TrollyMaster: React.FC = () => {
 
   const loadTrollies = useCallback(async () => {
     try {
+      setLoading(true)
       const response = await trollyService.getAll(page + 1, pageSize, search)
       setTrollies(response.data)
       setTotal(response.count)
     } catch {
       showAlert('Failed to load trollies', 'error')
+    } finally {
+      setLoading(false)
     }
   }, [page, pageSize, search])
 
@@ -158,10 +161,10 @@ const TrollyMaster: React.FC = () => {
         ((trolly as Record<string, unknown>).trolly_type_id as string) || '',
       barcode: trolly.barcode || '',
       qrCode: trolly.qr_code || '',
-      lengthMm: trolly.length_mm,
-      widthMm: trolly.width_mm,
-      heightMm: trolly.height_mm,
-      volumeMm3: trolly.volume_mm3,
+      lengthMm: trolly.length_mm || '',
+      widthMm: trolly.width_mm || '',
+      heightMm: trolly.height_mm || '',
+      volumeMm3: trolly.volume_mm3 || '',
       notes: trolly.notes || '',
       status: trolly.status,
       trolleyImage:
@@ -281,6 +284,7 @@ const TrollyMaster: React.FC = () => {
         onRowsPerPageChange={setPageSize}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        loading={loading}
       />
 
       <Dialog
@@ -332,15 +336,7 @@ const TrollyMaster: React.FC = () => {
               </Select>
             </FormControl>
             <TextField
-              label="Barcode"
-              value={formData.barcode}
-              onChange={(e) =>
-                setFormData({ ...formData, barcode: e.target.value })
-              }
-              fullWidth
-            />
-            <TextField
-              label="QR Code"
+              label="QR Code / RFID"
               value={formData.qrCode}
               onChange={(e) =>
                 setFormData({ ...formData, qrCode: e.target.value })
@@ -403,7 +399,7 @@ const TrollyMaster: React.FC = () => {
             </FormControl>
 
             {/* Trolley Image in second column with matching height */}
-            <Box sx={{ gridRow: 'span 2' }}>
+            <Box>
               <Typography
                 variant="body2"
                 sx={{
@@ -509,7 +505,7 @@ const TrollyMaster: React.FC = () => {
               }
               fullWidth
               multiline
-              rows={3}
+              rows={6}
             />
           </Box>
         </DialogContent>
