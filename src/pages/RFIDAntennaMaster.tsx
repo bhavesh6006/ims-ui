@@ -72,7 +72,7 @@ const RFIDAntennaMaster: React.FC = () => {
       setLoading(true)
       const response = await antennaService.getAll()
       setAntennas(response.data)
-      setTotal(response.total)
+      setTotal(response.count)
     } catch {
       showAlert('Failed to load antennas', 'error')
     } finally {
