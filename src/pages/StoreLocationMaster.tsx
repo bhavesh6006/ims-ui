@@ -62,11 +62,16 @@ const StoreLocationMaster: React.FC = () => {
 
   const [antennaMappings, setAntennaMappings] = useState<
     Array<{
-      mapping_id?: string // Add this to track existing mappings
-      antenna_id: string
+      mapping_id?: string // for tracking existing mappings
       movement_type: 'IN' | 'OUT'
-      antenna_code?: string
-      antenna_name?: string
+      antenna1_id: string
+      antenna1_mapping_id?: string
+      antenna2_id: string
+      antenna2_mapping_id?: string
+      antenna1_code?: string
+      antenna1_name?: string
+      antenna2_code?: string
+      antenna2_name?: string
     }>
   >([])
 
@@ -109,7 +114,12 @@ const StoreLocationMaster: React.FC = () => {
       const response = await antennaService.getAllUnmapped()
       const antennaData = response?.data ? response.data : []
 
-      setAntennas(antennaData)
+      // Sort alphabetically by antenna_name
+      const sortedAntennas = antennaData.sort((a, b) =>
+        (a.antenna_name || '').localeCompare(b.antenna_name || '')
+      )
+
+      setAntennas(sortedAntennas)
     } catch (error) {
       console.error('Error loading antennas:', error)
       showAlert('Failed to load antennas', 'error')
@@ -221,15 +231,54 @@ const StoreLocationMaster: React.FC = () => {
       remarks: location.remarks || '',
       status: location.status,
     })
-    setAntennaMappings(
-      location.antennaMappings?.map((m) => ({
-        mapping_id: m.mapping_id, // Include mapping_id for existing mappings
-        antenna_id: m.antenna_id,
-        movement_type: m.movement_type,
-        antenna_code: m.antenna_code, // Use preserved antenna_code
-        antenna_name: m.antenna_name, // Use preserved antenna_name
-      })) || []
-    )
+
+    // Group antenna mappings by movement_type and create rows
+    const mappings = location.antennaMappings || []
+    const groupedMappings: Record<string, AntennaMapping[]> = {}
+
+    mappings.forEach((mapping) => {
+      const key = mapping.movement_type
+      if (!groupedMappings[key]) {
+        groupedMappings[key] = []
+      }
+      groupedMappings[key].push(mapping)
+    })
+
+    const rows: Array<{
+      movement_type: 'IN' | 'OUT'
+      antenna1_id: string
+      antenna1_mapping_id?: string
+      antenna2_id: string
+      antenna2_mapping_id?: string
+      antenna1_code?: string
+      antenna1_name?: string
+      antenna2_code?: string
+      antenna2_name?: string
+    }> = []
+
+    // Create rows from grouped mappings
+    Object.entries(groupedMappings).forEach(([movementType, antennas]) => {
+      const first = antennas[0]
+      const second = antennas[1]
+
+      rows.push({
+        movement_type: movementType as 'IN' | 'OUT',
+        antenna1_id: first?.antenna_id || '',
+        antenna1_mapping_id: first?.mapping_id,
+        antenna1_code:
+          first?.antenna?.antenna_code || first?.antenna_code || '',
+        antenna1_name:
+          first?.antenna?.antenna_name || first?.antenna_name || '',
+        antenna2_id: second?.antenna_id || '',
+        antenna2_mapping_id: second?.mapping_id,
+        antenna2_code:
+          second?.antenna?.antenna_code || second?.antenna_code || '',
+        antenna2_name:
+          second?.antenna?.antenna_name || second?.antenna_name || '',
+      })
+    })
+
+    setAntennaMappings(rows)
     loadAntennas()
     setModalOpen(true)
   }
@@ -255,7 +304,11 @@ const StoreLocationMaster: React.FC = () => {
   const handleAddAntennaMapping = () => {
     setAntennaMappings([
       ...antennaMappings,
-      { antenna_id: '', movement_type: 'IN' },
+      {
+        movement_type: 'IN',
+        antenna1_id: '',
+        antenna2_id: '',
+      },
     ])
   }
 
@@ -265,7 +318,7 @@ const StoreLocationMaster: React.FC = () => {
 
   const handleAntennaMappingChange = (
     index: number,
-    field: 'antenna_id' | 'movement_type',
+    field: 'movement_type' | 'antenna1_id' | 'antenna2_id',
     value: string
   ) => {
     const updated = [...antennaMappings]
@@ -273,16 +326,31 @@ const StoreLocationMaster: React.FC = () => {
     setAntennaMappings(updated)
   }
 
-  // Add helper function to get available antennas for each row
-  const getAvailableAntennas = (currentIndex: number) => {
+  // Helper function to get available antennas for a specific row and field
+  const getAvailableAntennas = (
+    currentIndex: number,
+    field: 'antenna1' | 'antenna2'
+  ) => {
+    const currentRow = antennaMappings[currentIndex]
+    const otherField = field === 'antenna1' ? 'antenna2_id' : 'antenna1_id'
+    const currentFieldId = field === 'antenna1' ? 'antenna1_id' : 'antenna2_id'
+
+    // Get all selected antenna IDs except the current field's value and the other field in same row
     const selectedAntennaIds = antennaMappings
-      .map((m, idx) => (idx !== currentIndex ? m.antenna_id : null))
+      .flatMap((m, idx) => {
+        if (idx === currentIndex) {
+          // For current row, only exclude the other field
+          return [m[otherField]]
+        }
+        // For other rows, exclude both antennas
+        return [m.antenna1_id, m.antenna2_id]
+      })
       .filter(Boolean)
 
     return antennas.filter(
       (a) =>
         (a.status === 'ACTIVE' ||
-          a.antenna_id === antennaMappings[currentIndex]?.antenna_id) &&
+          a.antenna_id === currentRow[currentFieldId]) &&
         !selectedAntennaIds.includes(a.antenna_id)
     )
   }
@@ -293,48 +361,98 @@ const StoreLocationMaster: React.FC = () => {
       return
     }
 
+    // Validate that each row has at least the first antenna
+    for (let i = 0; i < antennaMappings.length; i++) {
+      if (!antennaMappings[i].antenna1_id) {
+        showAlert(`Row ${i + 1}: First antenna is required`, 'error')
+        return
+      }
+    }
+
     try {
       if (editingLocation) {
-        // For editing, we need to determine which mappings are new, existing, or removed
+        // For editing, determine which mappings are new, existing, or removed
         const existingMappings = editingLocation.antennaMappings || []
-        const currentMappingIds = new Set(
-          antennaMappings.filter((m) => m.mapping_id).map((m) => m.mapping_id)
-        )
 
-        // Find mappings to add (no mapping_id)
-        const mappingsToAdd = antennaMappings
-          .filter((m) => !m.mapping_id && m.antenna_id)
-          .map((m) => ({
-            antenna_id: m.antenna_id,
-            movement_type: m.movement_type,
-          }))
+        const mappingsToAdd: Array<{
+          antenna_id: string
+          movement_type: 'IN' | 'OUT'
+        }> = []
+        const mappingsToRemove: string[] = []
+        const mappingsToUpdate: Array<{
+          mapping_id: string
+          antenna_id: string
+          movement_type: 'IN' | 'OUT'
+        }> = []
 
-        // Find mappings to remove (existed before but not in current list)
-        const mappingsToRemove = existingMappings
-          .filter((m) => !currentMappingIds.has(m.mapping_id))
-          .map((m) => m.mapping_id!)
+        // Track which existing mappings are still in use
+        const usedMappingIds = new Set<string>()
 
-        // Find mappings to update (have mapping_id and might have changed)
-        const mappingsToUpdate = antennaMappings
-          .filter((m) => m.mapping_id)
-          .map((m) => {
-            const original = existingMappings.find(
-              (em) => em.mapping_id === m.mapping_id
-            )
-            if (
-              !original ||
-              original.antenna_id !== m.antenna_id ||
-              original.movement_type !== m.movement_type
-            ) {
-              return {
-                mapping_id: m.mapping_id!,
-                antenna_id: m.antenna_id,
-                movement_type: m.movement_type,
+        // Process each row
+        antennaMappings.forEach((row) => {
+          // Handle antenna 1
+          if (row.antenna1_id) {
+            if (row.antenna1_mapping_id) {
+              // Existing mapping - check if it needs update
+              const existing = existingMappings.find(
+                (m) => m.mapping_id === row.antenna1_mapping_id
+              )
+              if (
+                existing &&
+                (existing.antenna_id !== row.antenna1_id ||
+                  existing.movement_type !== row.movement_type)
+              ) {
+                mappingsToUpdate.push({
+                  mapping_id: row.antenna1_mapping_id,
+                  antenna_id: row.antenna1_id,
+                  movement_type: row.movement_type,
+                })
               }
+              usedMappingIds.add(row.antenna1_mapping_id)
+            } else {
+              // New mapping
+              mappingsToAdd.push({
+                antenna_id: row.antenna1_id,
+                movement_type: row.movement_type,
+              })
             }
-            return null
-          })
-          .filter((m) => m !== null)
+          }
+
+          // Handle antenna 2
+          if (row.antenna2_id) {
+            if (row.antenna2_mapping_id) {
+              // Existing mapping - check if it needs update
+              const existing = existingMappings.find(
+                (m) => m.mapping_id === row.antenna2_mapping_id
+              )
+              if (
+                existing &&
+                (existing.antenna_id !== row.antenna2_id ||
+                  existing.movement_type !== row.movement_type)
+              ) {
+                mappingsToUpdate.push({
+                  mapping_id: row.antenna2_mapping_id,
+                  antenna_id: row.antenna2_id,
+                  movement_type: row.movement_type,
+                })
+              }
+              usedMappingIds.add(row.antenna2_mapping_id)
+            } else {
+              // New mapping
+              mappingsToAdd.push({
+                antenna_id: row.antenna2_id,
+                movement_type: row.movement_type,
+              })
+            }
+          }
+        })
+
+        // Find mappings to remove (existed before but not in current config)
+        existingMappings.forEach((m) => {
+          if (m.mapping_id && !usedMappingIds.has(m.mapping_id)) {
+            mappingsToRemove.push(m.mapping_id)
+          }
+        })
 
         const payload = {
           store_code: formData.store_code,
@@ -363,6 +481,27 @@ const StoreLocationMaster: React.FC = () => {
         showAlert('Store location updated successfully', 'success')
       } else {
         // For creating, send all mappings
+        const antenna_mappings: Array<{
+          antenna_id: string
+          movement_type: 'IN' | 'OUT'
+        }> = []
+
+        antennaMappings.forEach((row) => {
+          if (row.antenna1_id) {
+            antenna_mappings.push({
+              antenna_id: row.antenna1_id,
+              movement_type: row.movement_type,
+            })
+          }
+
+          if (row.antenna2_id) {
+            antenna_mappings.push({
+              antenna_id: row.antenna2_id,
+              movement_type: row.movement_type,
+            })
+          }
+        })
+
         const payload = {
           store_code: formData.store_code,
           store_name: formData.store_name,
@@ -375,12 +514,7 @@ const StoreLocationMaster: React.FC = () => {
           area_unit: mapFormAreaUnitToApi(formData.area_unit),
           remarks: formData.remarks || undefined,
           status: formData.status,
-          antenna_mappings: antennaMappings
-            .filter((m) => m.antenna_id)
-            .map((m) => ({
-              antenna_id: m.antenna_id,
-              movement_type: m.movement_type,
-            })),
+          antenna_mappings,
         }
 
         await storeLocationService.create(payload)
@@ -390,7 +524,9 @@ const StoreLocationMaster: React.FC = () => {
       loadLocations()
     } catch (error) {
       console.error('Error saving store location:', error)
-      const message = error?.response?.data?.message || 'Operation failed'
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || 'Operation failed'
       showAlert(message, 'error')
     }
   }
@@ -561,7 +697,7 @@ const StoreLocationMaster: React.FC = () => {
                 startIcon={<AddIcon />}
                 onClick={handleAddAntennaMapping}
               >
-                Add Antenna
+                Add Mapping
               </Button>
             </Box>
 
@@ -569,62 +705,22 @@ const StoreLocationMaster: React.FC = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Antenna</TableCell>
                     <TableCell>Movement Type</TableCell>
+                    <TableCell>First Antenna *</TableCell>
+                    <TableCell>Second Antenna (Optional)</TableCell>
                     <TableCell width={80}>Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {antennaMappings.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} align="center">
+                      <TableCell colSpan={4} align="center">
                         No antenna mappings added
                       </TableCell>
                     </TableRow>
                   ) : (
                     antennaMappings.map((mapping, index) => (
                       <TableRow key={index}>
-                        <TableCell>
-                          <FormControl fullWidth size="small">
-                            <Select
-                              value={mapping.antenna_id}
-                              onChange={(e) =>
-                                handleAntennaMappingChange(
-                                  index,
-                                  'antenna_id',
-                                  e.target.value
-                                )
-                              }
-                              displayEmpty
-                              renderValue={(selected) => {
-                                if (!selected) {
-                                  return (
-                                    <em style={{ color: '#999' }}>
-                                      Select Antenna
-                                    </em>
-                                  )
-                                }
-                                const antenna = antennas.find(
-                                  (a) => a.antenna_id === selected
-                                )
-                                // Display antenna_code and antenna_name for already mapped antennas
-                                return antenna
-                                  ? `${antenna.antenna_code} - ${antenna.antenna_name}`
-                                  : `${mapping.antenna_code} - ${mapping.antenna_name}`
-                              }}
-                            >
-                              {getAvailableAntennas(index).map((antenna) => (
-                                <MenuItem
-                                  key={antenna.antenna_id}
-                                  value={antenna.antenna_id}
-                                >
-                                  {antenna.antenna_code} -{' '}
-                                  {antenna.antenna_name}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        </TableCell>
                         <TableCell>
                           <FormControl fullWidth size="small">
                             <Select
@@ -636,10 +732,96 @@ const StoreLocationMaster: React.FC = () => {
                                   e.target.value as 'IN' | 'OUT'
                                 )
                               }
-                              disabled={!mapping.antenna_id}
                             >
                               <MenuItem value="IN">IN</MenuItem>
                               <MenuItem value="OUT">OUT</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </TableCell>
+                        <TableCell>
+                          <FormControl fullWidth size="small" required>
+                            <Select
+                              value={mapping.antenna1_id}
+                              onChange={(e) =>
+                                handleAntennaMappingChange(
+                                  index,
+                                  'antenna1_id',
+                                  e.target.value
+                                )
+                              }
+                              displayEmpty
+                              renderValue={(selected) => {
+                                if (!selected) {
+                                  return (
+                                    <em style={{ color: '#999' }}>
+                                      Select First Antenna *
+                                    </em>
+                                  )
+                                }
+                                const antenna = antennas.find(
+                                  (a) => a.antenna_id === selected
+                                )
+                                return antenna
+                                  ? `${antenna.antenna_code} - ${antenna.antenna_name}`
+                                  : `${mapping.antenna1_code} - ${mapping.antenna1_name}`
+                              }}
+                            >
+                              {getAvailableAntennas(index, 'antenna1').map(
+                                (antenna) => (
+                                  <MenuItem
+                                    key={antenna.antenna_id}
+                                    value={antenna.antenna_id}
+                                  >
+                                    {antenna.antenna_code} -{' '}
+                                    {antenna.antenna_name}
+                                  </MenuItem>
+                                )
+                              )}
+                            </Select>
+                          </FormControl>
+                        </TableCell>
+                        <TableCell>
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={mapping.antenna2_id}
+                              onChange={(e) =>
+                                handleAntennaMappingChange(
+                                  index,
+                                  'antenna2_id',
+                                  e.target.value
+                                )
+                              }
+                              displayEmpty
+                              renderValue={(selected) => {
+                                if (!selected) {
+                                  return (
+                                    <em style={{ color: '#999' }}>
+                                      Select Second Antenna (Optional)
+                                    </em>
+                                  )
+                                }
+                                const antenna = antennas.find(
+                                  (a) => a.antenna_id === selected
+                                )
+                                return antenna
+                                  ? `${antenna.antenna_code} - ${antenna.antenna_name}`
+                                  : `${mapping.antenna2_code} - ${mapping.antenna2_name}`
+                              }}
+                            >
+                              <MenuItem value="">
+                                <em>None</em>
+                              </MenuItem>
+                              {getAvailableAntennas(index, 'antenna2').map(
+                                (antenna) => (
+                                  <MenuItem
+                                    key={antenna.antenna_id}
+                                    value={antenna.antenna_id}
+                                  >
+                                    {antenna.antenna_code} -{' '}
+                                    {antenna.antenna_name}
+                                  </MenuItem>
+                                )
+                              )}
                             </Select>
                           </FormControl>
                         </TableCell>

@@ -132,7 +132,16 @@ const UserManagement: React.FC = () => {
         userPagination.pageSize,
         search
       )
-      setUsers(response.data)
+      const data = response.data || []
+
+      // Sort alphabetically by first_name then last_name
+      const sortedUsers = (Array.isArray(data) ? data : []).sort((a, b) => {
+        const nameA = `${a.first_name || ''} ${a.last_name || ''}`
+        const nameB = `${b.first_name || ''} ${b.last_name || ''}`
+        return nameA.localeCompare(nameB)
+      })
+
+      setUsers(sortedUsers)
       setTotal(response.count)
     } catch {
       showAlert('Failed to load users', 'error')
@@ -142,7 +151,16 @@ const UserManagement: React.FC = () => {
   const loadRoles = useCallback(async () => {
     try {
       const response = await userRoleService.getAll()
-      setRoles(response.data)
+      const roles = response.data || response
+
+      // Sort alphabetically by role_name
+      const sortedRoles = Array.isArray(roles)
+        ? roles.sort((a, b) =>
+            (a.role_name || '').localeCompare(b.role_name || '')
+          )
+        : []
+
+      setRoles(sortedRoles)
     } catch {
       showAlert('Failed to load roles', 'error')
     }

@@ -5,6 +5,7 @@ export interface Trolly extends Record<string, unknown> {
   trolley_id: string
   trolley_code: string
   trolly_type_id: string // Note: API uses 'trolly_type_id' not 'trolley_type_id'
+  trolley_condition_id?: string
   trolley_image?: string | null
   barcode?: string
   qr_code?: string
@@ -17,6 +18,7 @@ export interface Trolly extends Record<string, unknown> {
   createdAt?: string
   updatedAt?: string
   trolly_type?: string // Note: API uses 'trolly_type' not 'trolley_type'
+  trolly_condition?: string
 }
 
 // Material Master

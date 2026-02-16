@@ -13,8 +13,6 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
-  Chip,
-  OutlinedInput,
 } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material/Select'
 import AddIcon from '@mui/icons-material/Add'
@@ -24,9 +22,9 @@ import { SearchBar, Alert } from '../components/molecules'
 import {
   materialService,
   materialTypeService,
-  subtoolPositionService,
+  subtoolService,
 } from '../services'
-import type { SubtoolPosition } from '../services/subtoolPositionService'
+import type { Subtool } from '../services/subtoolService'
 
 type Material = {
   material_id: string
@@ -34,8 +32,9 @@ type Material = {
   material_name: string
   material_type_id: string
   materialType?: { material_type: string } // For display purposes
-  subtool_position_id: string[]
-  subtoolPositions?: Array<{ subtool_position: string }> // For display purposes
+  subtool_id: string
+  subtool?: { subtool_id: string; name: string } // For display purposes
+  subtoolName?: string // For display purposes - extracted from subtool.name
   length_mm: string
   width_mm: string
   height_mm: string
@@ -53,9 +52,7 @@ type MaterialType = {
 const MaterialMaster: React.FC = () => {
   const [materials, setMaterials] = useState<Material[]>([])
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([])
-  const [subtoolPositions, setSubtoolPositions] = useState<SubtoolPosition[]>(
-    []
-  )
+  const [subtools, setSubtools] = useState<Subtool[]>([])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const [total, setTotal] = useState(0)
@@ -75,7 +72,7 @@ const MaterialMaster: React.FC = () => {
     materialName: '',
     materialCode: '',
     materialTypeId: '' as string,
-    subtoolPositionIds: [] as string[],
+    subtoolId: '' as string,
     length: 0,
     width: 0,
     height: 0,
@@ -98,14 +95,11 @@ const MaterialMaster: React.FC = () => {
       },
     },
     {
-      id: 'subtoolPositions',
-      label: 'Subtool Positions',
+      id: 'subtoolName',
+      label: 'Subtool',
       format: (value: unknown) => {
-        const positions = value as
-          | Array<{ subtool_position: string }>
-          | undefined
-        if (!positions || positions.length === 0) return 'N/A'
-        return positions.map((p) => p.subtool_position).join(', ')
+        const name = value as string | undefined
+        return name || 'N/A'
       },
     },
     {
@@ -141,22 +135,25 @@ const MaterialMaster: React.FC = () => {
       const data = response.data || response
       const totalCount = response.count || data.length
 
-      const mappedMaterials = (Array.isArray(data) ? data : []).map((item) => ({
-        material_id: item.material_id,
-        material_code: item.material_code,
-        material_name: item.material_name,
-        material_type_id: item.material_type_id,
-        materialType: item.materialType,
-        subtool_position_id: item.subtool_position_id || [],
-        subtoolPositions: item.subtoolPositions || [],
-        length_mm: parseFloat(String(item?.length_mm ?? 0)).toFixed(2),
-        width_mm: parseFloat(String(item?.width_mm ?? 0)).toFixed(2),
-        height_mm: parseFloat(String(item?.height_mm ?? 0)).toFixed(2),
-        weight_kg: parseFloat(String(item?.weight_kg ?? 0)).toFixed(3),
-        status: item.status,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-      }))
+      const mappedMaterials = (Array.isArray(data) ? data : []).map((item) => {
+        return {
+          material_id: item.material_id,
+          material_code: item.material_code,
+          material_name: item.material_name,
+          material_type_id: item.material_type_id,
+          materialType: item.materialType,
+          subtool_id: item.subtool_id || '',
+          subtool: item.subtool,
+          subtoolName: item.subtool?.name || '',
+          length_mm: parseFloat(String(item?.length_mm ?? 0)).toFixed(2),
+          width_mm: parseFloat(String(item?.width_mm ?? 0)).toFixed(2),
+          height_mm: parseFloat(String(item?.height_mm ?? 0)).toFixed(2),
+          weight_kg: parseFloat(String(item?.weight_kg ?? 0)).toFixed(3),
+          status: item.status,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+        }
+      })
 
       setMaterials(mappedMaterials)
       setTotal(totalCount)
@@ -175,33 +172,43 @@ const MaterialMaster: React.FC = () => {
       const data = response.data || response
       const types = Array.isArray(data) ? data : []
 
-      setMaterialTypes(types)
+      // Sort alphabetically by material_type
+      const sortedTypes = types.sort((a, b) =>
+        a.material_type.localeCompare(b.material_type)
+      )
+
+      setMaterialTypes(sortedTypes)
     } catch {
       showAlert('Failed to load material types', 'error')
       setMaterialTypes([]) // Ensure it's always an array even on error
     }
   }, [])
 
-  const loadSubtoolPositions = useCallback(async () => {
+  const loadSubtools = useCallback(async () => {
     try {
-      const response = await subtoolPositionService.getAll()
+      const response = await subtoolService.getAll()
 
       // Handle different response structures
       const data = response.data || response
-      const positions = Array.isArray(data) ? data : []
+      const subtoolList = Array.isArray(data) ? data : []
 
-      setSubtoolPositions(positions)
+      // Sort alphabetically by name
+      const sortedSubtools = subtoolList.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      )
+
+      setSubtools(sortedSubtools)
     } catch {
-      showAlert('Failed to load subtool positions', 'error')
-      setSubtoolPositions([]) // Ensure it's always an array even on error
+      showAlert('Failed to load subtools', 'error')
+      setSubtools([]) // Ensure it's always an array even on error
     }
   }, [])
 
   useEffect(() => {
     loadMaterials()
     loadMaterialTypes()
-    loadSubtoolPositions()
-  }, [loadMaterials, loadMaterialTypes, loadSubtoolPositions])
+    loadSubtools()
+  }, [loadMaterials, loadMaterialTypes, loadSubtools])
 
   const handleAdd = () => {
     setEditingMaterial(null)
@@ -210,7 +217,7 @@ const MaterialMaster: React.FC = () => {
       materialCode: '',
       materialName: '',
       materialTypeId: '',
-      subtoolPositionIds: [],
+      subtoolId: '',
       length: 0,
       width: 0,
       height: 0,
@@ -230,7 +237,7 @@ const MaterialMaster: React.FC = () => {
       materialCode: material.material_code,
       materialName: material.material_name,
       materialTypeId: material.material_type_id,
-      subtoolPositionIds: material.subtool_position_id || [],
+      subtoolId: material.subtool_id || '',
       length: parseFloat(material.length_mm),
       width: parseFloat(material.width_mm),
       height: parseFloat(material.height_mm),
@@ -275,10 +282,7 @@ const MaterialMaster: React.FC = () => {
         material_code: formData.materialCode,
         material_name: formData.materialName,
         material_type_id: formData.materialTypeId,
-        subtool_position_id:
-          formData.subtoolPositionIds.length > 0
-            ? formData.subtoolPositionIds
-            : null,
+        subtool_id: formData.subtoolId || null,
         length_mm: formData.length.toString(),
         width_mm: formData.width.toString(),
         height_mm: formData.height.toString(),
@@ -300,11 +304,10 @@ const MaterialMaster: React.FC = () => {
     }
   }
 
-  const handlePositionChange = (event: SelectChangeEvent<string[]>) => {
-    const value = event.target.value
+  const handlePositionChange = (event: SelectChangeEvent<string>) => {
     setFormData({
       ...formData,
-      subtoolPositionIds: typeof value === 'string' ? value.split(',') : value,
+      subtoolId: event.target.value as string,
     })
   }
 
@@ -395,36 +398,17 @@ const MaterialMaster: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-            <FormControl fullWidth sx={{ gridColumn: '1 / -1' }}>
-              <InputLabel>Subtool Positions</InputLabel>
+            <FormControl fullWidth>
+              <InputLabel>Subtool</InputLabel>
               <Select
-                multiple
-                value={formData.subtoolPositionIds}
+                value={formData.subtoolId}
                 onChange={handlePositionChange}
-                input={<OutlinedInput label="Subtool Positions" />}
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selected.map((value) => {
-                      const position = subtoolPositions.find(
-                        (p) => p.subtool_position_id === value
-                      )
-                      return (
-                        <Chip
-                          key={value}
-                          label={position?.subtool_position || value}
-                          size="small"
-                        />
-                      )
-                    })}
-                  </Box>
-                )}
+                label="Subtool"
               >
-                {subtoolPositions.map((position) => (
-                  <MenuItem
-                    key={position.subtool_position_id}
-                    value={position.subtool_position_id}
-                  >
-                    {position.subtool_position}
+                <MenuItem value="">None</MenuItem>
+                {subtools.map((subtool) => (
+                  <MenuItem key={subtool.subtool_id} value={subtool.subtool_id}>
+                    {subtool.name}
                   </MenuItem>
                 ))}
               </Select>
@@ -468,9 +452,9 @@ const MaterialMaster: React.FC = () => {
                   })
                 }
               >
-                <MenuItem value="mm">mm</MenuItem>
                 <MenuItem value="cm">cm</MenuItem>
                 <MenuItem value="m">m</MenuItem>
+                <MenuItem value="mm">mm</MenuItem>
               </Select>
             </FormControl>
             <TextField

@@ -20,13 +20,21 @@ import CloseIcon from '@mui/icons-material/Close'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import { DataTable, type Column } from '../components/organisms'
 import { SearchBar, Alert } from '../components/molecules'
-import { trollyService, trolleyTypeService } from '../services'
+import {
+  trollyService,
+  trolleyTypeService,
+  trolleyConditionService,
+} from '../services'
 import type { TrolleyType } from '../services/trolleyTypeService'
+import type { TrolleyCondition } from '../services/trolleyConditionService'
 import type { Trolly } from '../types'
 
 const TrollyMaster: React.FC = () => {
   const [trollies, setTrollies] = useState<Trolly[]>([])
   const [trolleyTypes, setTrolleyTypes] = useState<TrolleyType[]>([])
+  const [trolleyConditions, setTrolleyConditions] = useState<
+    TrolleyCondition[]
+  >([])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const [total, setTotal] = useState(0)
@@ -43,12 +51,14 @@ const TrollyMaster: React.FC = () => {
   const [formData, setFormData] = useState({
     trollyCode: '',
     trollyTypeId: '' as string,
+    trollyConditionId: '' as string,
     barcode: '',
     qrCode: '',
     lengthMm: '',
     widthMm: '',
     heightMm: '',
     volumeMm3: '',
+    ownership: '',
     notes: '',
     status: 'ACTIVE' as string,
     trolleyImage: '',
@@ -60,6 +70,11 @@ const TrollyMaster: React.FC = () => {
     {
       id: 'trolly_type',
       label: 'Type',
+      format: (value: unknown) => String(value || '-'),
+    },
+    {
+      id: 'trolly_condition',
+      label: 'Condition',
       format: (value: unknown) => String(value || '-'),
     },
     { id: 'qr_code', label: 'QR Code / RFID' },
@@ -122,29 +137,55 @@ const TrollyMaster: React.FC = () => {
       const data = response.data || response
       const types = Array.isArray(data) ? data : []
 
-      setTrolleyTypes(types)
+      // Sort alphabetically by trolly_type
+      const sortedTypes = types.sort((a, b) =>
+        a.trolly_type.localeCompare(b.trolly_type)
+      )
+
+      setTrolleyTypes(sortedTypes)
     } catch {
       showAlert('Failed to load trolley types', 'error')
       setTrolleyTypes([]) // Ensure it's always an array even on error
     }
   }, [])
 
+  const loadTrolleyConditions = useCallback(async () => {
+    try {
+      const response = await trolleyConditionService.getAll()
+      const data = response.data || response
+      const conditions = Array.isArray(data) ? data : []
+
+      // Sort alphabetically by name
+      const sortedConditions = conditions.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      )
+
+      setTrolleyConditions(sortedConditions)
+    } catch {
+      showAlert('Failed to load trolley conditions', 'error')
+      setTrolleyConditions([])
+    }
+  }, [])
+
   useEffect(() => {
     loadTrollies()
     loadTrolleyTypes()
-  }, [loadTrollies, loadTrolleyTypes])
+    loadTrolleyConditions()
+  }, [loadTrollies, loadTrolleyTypes, loadTrolleyConditions])
 
   const handleAdd = () => {
     setEditingTrolly(null)
     setFormData({
       trollyCode: '',
       trollyTypeId: '',
+      trollyConditionId: '',
       barcode: '',
       qrCode: '',
       lengthMm: '',
       widthMm: '',
       heightMm: '',
       volumeMm3: '',
+      ownership: '',
       notes: '',
       status: 'ACTIVE',
       trolleyImage: '',
@@ -159,12 +200,17 @@ const TrollyMaster: React.FC = () => {
       trollyCode: trolly.trolley_code,
       trollyTypeId:
         ((trolly as Record<string, unknown>).trolly_type_id as string) || '',
+      trollyConditionId:
+        ((trolly as Record<string, unknown>).trolley_condition_id as string) ||
+        '',
       barcode: trolly.barcode || '',
       qrCode: trolly.qr_code || '',
       lengthMm: trolly.length_mm || '',
       widthMm: trolly.width_mm || '',
       heightMm: trolly.height_mm || '',
       volumeMm3: trolly.volume_mm3 || '',
+      ownership:
+        ((trolly as Record<string, unknown>).ownership as string) || '',
       notes: trolly.notes || '',
       status: trolly.status,
       trolleyImage:
@@ -220,17 +266,23 @@ const TrollyMaster: React.FC = () => {
       showAlert('Type is required', 'error')
       return
     }
+    if (!formData.trollyConditionId) {
+      showAlert('Condition is required', 'error')
+      return
+    }
 
     try {
       const payload: Record<string, string> = {
         trolley_code: formData.trollyCode,
         trolly_type_id: formData.trollyTypeId,
+        trolley_condition_id: formData.trollyConditionId,
         barcode: formData.barcode,
         qr_code: formData.qrCode,
         length_mm: formData.lengthMm || '0',
         width_mm: formData.widthMm || '0',
         height_mm: formData.heightMm || '0',
         volume_mm3: formData.volumeMm3 || '0',
+        ownership: formData.ownership,
         notes: formData.notes,
         status: formData.status,
       }
@@ -335,6 +387,28 @@ const TrollyMaster: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
+            <FormControl fullWidth required>
+              <InputLabel>Condition</InputLabel>
+              <Select
+                value={formData.trollyConditionId}
+                label="Condition"
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    trollyConditionId: e.target.value as string,
+                  })
+                }
+              >
+                {trolleyConditions.map((condition) => (
+                  <MenuItem
+                    key={condition.trolley_condition_id}
+                    value={condition.trolley_condition_id}
+                  >
+                    {condition.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <TextField
               label="QR Code / RFID"
               value={formData.qrCode}
@@ -376,6 +450,14 @@ const TrollyMaster: React.FC = () => {
               value={formData.volumeMm3}
               onChange={(e) =>
                 setFormData({ ...formData, volumeMm3: e.target.value })
+              }
+              fullWidth
+            />
+            <TextField
+              label="Ownership"
+              value={formData.ownership}
+              onChange={(e) =>
+                setFormData({ ...formData, ownership: e.target.value })
               }
               fullWidth
             />
