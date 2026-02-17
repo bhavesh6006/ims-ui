@@ -27,6 +27,7 @@ const RFIDAntennaMaster = lazy(() => import('./pages/RFIDAntennaMaster'))
 const OperatorLoading = lazy(() => import('./pages/OperatorLoading'))
 const MovementTracking = lazy(() => import('./pages/MovementTracking'))
 const UserManagement = lazy(() => import('./pages/UserManagement'))
+const DeviceMaster = lazy(() => import('./pages/DeviceMaster'))
 
 // Loading component
 const PageLoader = () => (
@@ -90,6 +91,7 @@ function App() {
                   path="/rfid-antenna-master"
                   element={<RFIDAntennaMaster />}
                 />
+                <Route path="/device-master" element={<DeviceMaster />} />
                 <Route path="/user-management" element={<UserManagement />} />
                 {/* Operations Routes */}
                 <Route path="/operator-loading" element={<OperatorLoading />} />

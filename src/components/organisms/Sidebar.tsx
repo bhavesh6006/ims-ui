@@ -51,6 +51,11 @@ const menuItems: MenuItem[] = [
     path: '/store-location-master',
   },
   {
+    text: 'Device Master',
+    icon: <LocalShippingIcon />,
+    path: '/device-master',
+  },
+  {
     text: 'RFID Antenna',
     icon: <SettingsIcon />,
     path: '/rfid-antenna-master',
