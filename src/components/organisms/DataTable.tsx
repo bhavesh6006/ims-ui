@@ -18,7 +18,7 @@ export interface Column {
   label: string
   minWidth?: number
   align?: 'left' | 'right' | 'center'
-  format?: (value: unknown, row?: Record<string, unknown>) => string
+  format?: (value: unknown, row?: Record<string, unknown>) => React.ReactNode
 }
 
 interface DataTableProps<T = Record<string, unknown>> {

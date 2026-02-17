@@ -64,14 +64,10 @@ const StoreLocationMaster: React.FC = () => {
     Array<{
       mapping_id?: string // for tracking existing mappings
       movement_type: 'IN' | 'OUT'
-      antenna1_id: string
+      antenna1_id: number | ''
       antenna1_mapping_id?: string
-      antenna2_id: string
+      antenna2_id: number | ''
       antenna2_mapping_id?: string
-      antenna1_code?: string
-      antenna1_name?: string
-      antenna2_code?: string
-      antenna2_name?: string
     }>
   >([])
 
@@ -98,7 +94,14 @@ const StoreLocationMaster: React.FC = () => {
         const mappings = value as AntennaMapping[] | undefined
         if (!mappings || mappings.length === 0) return '-'
         return mappings
-          .map((m) => `${m.antenna?.antenna_code} (${m.movement_type})`)
+          .map((m) => {
+            const device = m.antenna?.device?.device_name || 'Unknown'
+            const antennaNo = m.antenna?.antenna_no || '?'
+            const antennaName = m.antenna?.antenna_name
+              ? ` (${m.antenna.antenna_name})`
+              : ''
+            return `${device} #${antennaNo}${antennaName} [${m.movement_type}]`
+          })
           .join(', ')
       },
     },
@@ -109,9 +112,12 @@ const StoreLocationMaster: React.FC = () => {
     setAlert({ open: true, message, severity })
   }
 
-  const loadAntennas = useCallback(async () => {
+  const loadAntennas = useCallback(async (isEditing: boolean = false) => {
     try {
-      const response = await antennaService.getAllUnmapped()
+      // When editing, load all antennas; when creating, load only unmapped
+      const response = isEditing
+        ? await antennaService.getAll()
+        : await antennaService.getAllUnmapped()
       const antennaData = response?.data ? response.data : []
 
       // Sort alphabetically by antenna_name
@@ -135,13 +141,11 @@ const StoreLocationMaster: React.FC = () => {
       // Handle response based on the actual structure
       const locationData = response.data?.data || response.data || []
 
-      // Preserve antenna_code and antenna_name in antennaMappings
+      // Preserve antenna info in antennaMappings
       const updatedLocations = locationData.map((location: StoreLocation) => ({
         ...location,
         antennaMappings: location.antennaMappings?.map((mapping) => ({
           ...mapping,
-          antenna_code: mapping.antenna?.antenna_code || '',
-          antenna_name: mapping.antenna?.antenna_name || '',
         })),
       }))
 
@@ -213,7 +217,7 @@ const StoreLocationMaster: React.FC = () => {
       status: 'ACTIVE',
     })
     setAntennaMappings([])
-    loadAntennas()
+    loadAntennas(false)
     setModalOpen(true)
   }
 
@@ -246,40 +250,31 @@ const StoreLocationMaster: React.FC = () => {
 
     const rows: Array<{
       movement_type: 'IN' | 'OUT'
-      antenna1_id: string
+      antenna1_id: number | ''
       antenna1_mapping_id?: string
-      antenna2_id: string
+      antenna2_id: number | ''
       antenna2_mapping_id?: string
-      antenna1_code?: string
-      antenna1_name?: string
-      antenna2_code?: string
-      antenna2_name?: string
     }> = []
 
-    // Create rows from grouped mappings
+    // Create rows from grouped mappings - handle multiple pairs per movement type
     Object.entries(groupedMappings).forEach(([movementType, antennas]) => {
-      const first = antennas[0]
-      const second = antennas[1]
+      // Create rows in pairs: every 2 antennas make one row
+      for (let i = 0; i < antennas.length; i += 2) {
+        const first = antennas[i]
+        const second = antennas[i + 1] // might be undefined if odd number
 
-      rows.push({
-        movement_type: movementType as 'IN' | 'OUT',
-        antenna1_id: first?.antenna_id || '',
-        antenna1_mapping_id: first?.mapping_id,
-        antenna1_code:
-          first?.antenna?.antenna_code || first?.antenna_code || '',
-        antenna1_name:
-          first?.antenna?.antenna_name || first?.antenna_name || '',
-        antenna2_id: second?.antenna_id || '',
-        antenna2_mapping_id: second?.mapping_id,
-        antenna2_code:
-          second?.antenna?.antenna_code || second?.antenna_code || '',
-        antenna2_name:
-          second?.antenna?.antenna_name || second?.antenna_name || '',
-      })
+        rows.push({
+          movement_type: movementType as 'IN' | 'OUT',
+          antenna1_id: first?.antenna_id || '',
+          antenna1_mapping_id: first?.mapping_id,
+          antenna2_id: second?.antenna_id || '',
+          antenna2_mapping_id: second?.mapping_id,
+        })
+      }
     })
 
     setAntennaMappings(rows)
-    loadAntennas()
+    loadAntennas(true)
     setModalOpen(true)
   }
 
@@ -319,40 +314,24 @@ const StoreLocationMaster: React.FC = () => {
   const handleAntennaMappingChange = (
     index: number,
     field: 'movement_type' | 'antenna1_id' | 'antenna2_id',
-    value: string
+    value: string | number | 'IN' | 'OUT'
   ) => {
     const updated = [...antennaMappings]
-    updated[index] = { ...updated[index], [field]: value }
+    if (field === 'movement_type') {
+      updated[index] = { ...updated[index], [field]: value as 'IN' | 'OUT' }
+    } else {
+      updated[index] = {
+        ...updated[index],
+        [field]: value === '' ? '' : Number(value),
+      }
+    }
     setAntennaMappings(updated)
   }
 
   // Helper function to get available antennas for a specific row and field
-  const getAvailableAntennas = (
-    currentIndex: number,
-    field: 'antenna1' | 'antenna2'
-  ) => {
-    const currentRow = antennaMappings[currentIndex]
-    const otherField = field === 'antenna1' ? 'antenna2_id' : 'antenna1_id'
-    const currentFieldId = field === 'antenna1' ? 'antenna1_id' : 'antenna2_id'
-
-    // Get all selected antenna IDs except the current field's value and the other field in same row
-    const selectedAntennaIds = antennaMappings
-      .flatMap((m, idx) => {
-        if (idx === currentIndex) {
-          // For current row, only exclude the other field
-          return [m[otherField]]
-        }
-        // For other rows, exclude both antennas
-        return [m.antenna1_id, m.antenna2_id]
-      })
-      .filter(Boolean)
-
-    return antennas.filter(
-      (a) =>
-        (a.status === 'ACTIVE' ||
-          a.antenna_id === currentRow[currentFieldId]) &&
-        !selectedAntennaIds.includes(a.antenna_id)
-    )
+  const getAvailableAntennas = () => {
+    // Return all antennas - no filtering based on selection
+    return antennas
   }
 
   const handleSubmit = async () => {
@@ -375,13 +354,13 @@ const StoreLocationMaster: React.FC = () => {
         const existingMappings = editingLocation.antennaMappings || []
 
         const mappingsToAdd: Array<{
-          antenna_id: string
+          antenna_id: number
           movement_type: 'IN' | 'OUT'
         }> = []
         const mappingsToRemove: string[] = []
         const mappingsToUpdate: Array<{
           mapping_id: string
-          antenna_id: string
+          antenna_id: number
           movement_type: 'IN' | 'OUT'
         }> = []
 
@@ -482,7 +461,7 @@ const StoreLocationMaster: React.FC = () => {
       } else {
         // For creating, send all mappings
         const antenna_mappings: Array<{
-          antenna_id: string
+          antenna_id: number
           movement_type: 'IN' | 'OUT'
         }> = []
 
@@ -761,21 +740,50 @@ const StoreLocationMaster: React.FC = () => {
                                 const antenna = antennas.find(
                                   (a) => a.antenna_id === selected
                                 )
-                                return antenna
-                                  ? `${antenna.antenna_code} - ${antenna.antenna_name}`
-                                  : `${mapping.antenna1_code} - ${mapping.antenna1_name}`
+                                if (antenna) {
+                                  const deviceName =
+                                    antenna.device?.device_name ||
+                                    'Unknown Device'
+                                  const antennaName = antenna.antenna_name
+                                    ? ` (${antenna.antenna_name})`
+                                    : ''
+                                  return `${deviceName} #${antenna.antenna_no}${antennaName}`
+                                }
+                                // For existing mappings during edit
+                                const existingMapping =
+                                  editingLocation?.antennaMappings?.find(
+                                    (m) => m.antenna_id === selected
+                                  )
+                                if (existingMapping?.antenna) {
+                                  const deviceName =
+                                    existingMapping.antenna.device
+                                      ?.device_name || 'Unknown'
+                                  const antennaName = existingMapping.antenna
+                                    .antenna_name
+                                    ? ` (${existingMapping.antenna.antenna_name})`
+                                    : ''
+                                  return `${deviceName} #${existingMapping.antenna.antenna_no}${antennaName}`
+                                }
+                                return `Antenna ${selected}`
                               }}
                             >
                               {getAvailableAntennas(index, 'antenna1').map(
-                                (antenna) => (
-                                  <MenuItem
-                                    key={antenna.antenna_id}
-                                    value={antenna.antenna_id}
-                                  >
-                                    {antenna.antenna_code} -{' '}
-                                    {antenna.antenna_name}
-                                  </MenuItem>
-                                )
+                                (antenna) => {
+                                  const deviceName =
+                                    antenna.device?.device_name || 'Unknown'
+                                  const antennaName = antenna.antenna_name
+                                    ? ` (${antenna.antenna_name})`
+                                    : ''
+                                  return (
+                                    <MenuItem
+                                      key={antenna.antenna_id}
+                                      value={antenna.antenna_id}
+                                    >
+                                      {deviceName} #{antenna.antenna_no}
+                                      {antennaName}
+                                    </MenuItem>
+                                  )
+                                }
                               )}
                             </Select>
                           </FormControl>
@@ -803,24 +811,53 @@ const StoreLocationMaster: React.FC = () => {
                                 const antenna = antennas.find(
                                   (a) => a.antenna_id === selected
                                 )
-                                return antenna
-                                  ? `${antenna.antenna_code} - ${antenna.antenna_name}`
-                                  : `${mapping.antenna2_code} - ${mapping.antenna2_name}`
+                                if (antenna) {
+                                  const deviceName =
+                                    antenna.device?.device_name ||
+                                    'Unknown Device'
+                                  const antennaName = antenna.antenna_name
+                                    ? ` (${antenna.antenna_name})`
+                                    : ''
+                                  return `${deviceName} #${antenna.antenna_no}${antennaName}`
+                                }
+                                // For existing mappings during edit
+                                const existingMapping =
+                                  editingLocation?.antennaMappings?.find(
+                                    (m) => m.antenna_id === selected
+                                  )
+                                if (existingMapping?.antenna) {
+                                  const deviceName =
+                                    existingMapping.antenna.device
+                                      ?.device_name || 'Unknown'
+                                  const antennaName = existingMapping.antenna
+                                    .antenna_name
+                                    ? ` (${existingMapping.antenna.antenna_name})`
+                                    : ''
+                                  return `${deviceName} #${existingMapping.antenna.antenna_no}${antennaName}`
+                                }
+                                return `Antenna ${selected}`
                               }}
                             >
                               <MenuItem value="">
                                 <em>None</em>
                               </MenuItem>
                               {getAvailableAntennas(index, 'antenna2').map(
-                                (antenna) => (
-                                  <MenuItem
-                                    key={antenna.antenna_id}
-                                    value={antenna.antenna_id}
-                                  >
-                                    {antenna.antenna_code} -{' '}
-                                    {antenna.antenna_name}
-                                  </MenuItem>
-                                )
+                                (antenna) => {
+                                  const deviceName =
+                                    antenna.device?.device_name || 'Unknown'
+                                  const antennaName = antenna.antenna_name
+                                    ? ` (${antenna.antenna_name})`
+                                    : ''
+                                  return (
+                                    <MenuItem
+                                      key={antenna.antenna_id}
+                                      value={antenna.antenna_id}
+                                    >
+                                      {deviceName} #{antenna.antenna_no}
+                                      {antennaName}
+                                    </MenuItem>
+                                  )
+                                }
                               )}
                             </Select>
                           </FormControl>

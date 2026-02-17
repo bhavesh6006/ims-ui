@@ -17,18 +17,24 @@ export interface StoreLocation extends Record<string, unknown> {
 export interface AntennaMapping {
   mapping_id?: string
   store_location_id?: string
-  antenna_id: string
+  antenna_id: number
   movement_type: 'IN' | 'OUT'
   status?: 'ACTIVE' | 'INACTIVE'
   created_at?: string
   updated_at?: string
-  antenna_code: string
-  antenna_name: string
   antenna?: {
-    antenna_id: string
-    antenna_code: string
-    antenna_name: string
-    antenna_type: string
-    status: string
+    antenna_id: number
+    device_id: number
+    antenna_no: number
+    antenna_name?: string
+    location_name?: string
+    is_enabled: boolean
+    is_connected: boolean
+    device?: {
+      device_id: number
+      device_name: string
+      ip_address: string
+      location?: string
+    }
   }
 }

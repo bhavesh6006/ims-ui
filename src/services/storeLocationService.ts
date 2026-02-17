@@ -11,17 +11,17 @@ export interface StoreLocationPayload {
   remarks?: string
   status?: string
   antenna_mappings?: Array<{
-    antenna_id: string
+    antenna_id: number
     movement_type: string
   }>
 }
 
 export interface StoreLocationUpdatePayload extends Partial<StoreLocationPayload> {
-  antenna_mappings_to_add?: Array<{ antenna_id: string; movement_type: string }>
+  antenna_mappings_to_add?: Array<{ antenna_id: number; movement_type: string }>
   antenna_mappings_to_remove?: string[]
   antenna_mappings_to_update?: Array<{
     mapping_id: string
-    antenna_id?: string
+    antenna_id?: number
     movement_type?: string
   }>
 }
