@@ -57,7 +57,9 @@ const TrollyMaster: React.FC = () => {
     lengthMm: '',
     widthMm: '',
     heightMm: '',
+    dimensionUnit: 'mm' as 'mm' | 'cm' | 'm',
     volumeMm3: '',
+    volumeUnit: 'mm³' as 'mm³' | 'cm³' | 'm³',
     ownership: '',
     notes: '',
     status: 'ACTIVE' as string,
@@ -80,21 +82,24 @@ const TrollyMaster: React.FC = () => {
     { id: 'qr_code', label: 'QR Code / RFID' },
     {
       id: 'dimensions',
-      label: 'Dimensions (L×W×H mm)',
+      label: 'Dimensions',
       format: (_value: unknown, row?: Record<string, unknown>) => {
         const trolly = row as Trolly | undefined
         if (trolly) {
-          return `${trolly.length_mm}×${trolly.width_mm}×${trolly.height_mm}`
+          const unit = trolly.dimension_unit || 'mm'
+          return `${trolly.length_mm}×${trolly.width_mm}×${trolly.height_mm} ${unit}`
         }
         return '-'
       },
     },
     {
       id: 'volume_mm3',
-      label: 'Volume (mm³)',
-      format: (value: unknown) => {
+      label: 'Volume',
+      format: (value: unknown, row?: Record<string, unknown>) => {
         const volume = value as string
-        return Number(volume).toLocaleString()
+        const trolly = row as Trolly | undefined
+        const unit = trolly?.volume_unit || 'mm³'
+        return `${Number(volume).toLocaleString()} ${unit}`
       },
     },
     {
@@ -184,7 +189,9 @@ const TrollyMaster: React.FC = () => {
       lengthMm: '',
       widthMm: '',
       heightMm: '',
+      dimensionUnit: 'mm',
       volumeMm3: '',
+      volumeUnit: 'mm³',
       ownership: '',
       notes: '',
       status: 'ACTIVE',
@@ -208,7 +215,9 @@ const TrollyMaster: React.FC = () => {
       lengthMm: trolly.length_mm || '',
       widthMm: trolly.width_mm || '',
       heightMm: trolly.height_mm || '',
+      dimensionUnit: (trolly.dimension_unit || 'mm') as 'mm' | 'cm' | 'm',
       volumeMm3: trolly.volume_mm3 || '',
+      volumeUnit: (trolly.volume_unit || 'mm³') as 'mm³' | 'cm³' | 'm³',
       ownership:
         ((trolly as Record<string, unknown>).ownership as string) || '',
       notes: trolly.notes || '',
@@ -281,7 +290,9 @@ const TrollyMaster: React.FC = () => {
         length_mm: formData.lengthMm || '0',
         width_mm: formData.widthMm || '0',
         height_mm: formData.heightMm || '0',
+        dimension_unit: formData.dimensionUnit,
         volume_mm3: formData.volumeMm3 || '0',
+        volume_unit: formData.volumeUnit,
         ownership: formData.ownership,
         notes: formData.notes,
         status: formData.status,
@@ -418,7 +429,7 @@ const TrollyMaster: React.FC = () => {
               fullWidth
             />
             <TextField
-              label="Length (mm)"
+              label="Length"
               type="number"
               value={formData.lengthMm}
               onChange={(e) =>
@@ -427,7 +438,7 @@ const TrollyMaster: React.FC = () => {
               fullWidth
             />
             <TextField
-              label="Width (mm)"
+              label="Width"
               type="number"
               value={formData.widthMm}
               onChange={(e) =>
@@ -436,7 +447,7 @@ const TrollyMaster: React.FC = () => {
               fullWidth
             />
             <TextField
-              label="Height (mm)"
+              label="Height"
               type="number"
               value={formData.heightMm}
               onChange={(e) =>
@@ -444,8 +455,25 @@ const TrollyMaster: React.FC = () => {
               }
               fullWidth
             />
+            <FormControl fullWidth>
+              <InputLabel>Dimension Unit</InputLabel>
+              <Select
+                value={formData.dimensionUnit}
+                label="Dimension Unit"
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    dimensionUnit: e.target.value as 'mm' | 'cm' | 'm',
+                  })
+                }
+              >
+                <MenuItem value="mm">mm</MenuItem>
+                <MenuItem value="cm">cm</MenuItem>
+                <MenuItem value="m">m</MenuItem>
+              </Select>
+            </FormControl>
             <TextField
-              label="Volume (mm³)"
+              label="Volume"
               type="number"
               value={formData.volumeMm3}
               onChange={(e) =>
@@ -453,6 +481,23 @@ const TrollyMaster: React.FC = () => {
               }
               fullWidth
             />
+            <FormControl fullWidth>
+              <InputLabel>Volume Unit</InputLabel>
+              <Select
+                value={formData.volumeUnit}
+                label="Volume Unit"
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    volumeUnit: e.target.value as 'mm³' | 'cm³' | 'm³',
+                  })
+                }
+              >
+                <MenuItem value="mm³">mm³</MenuItem>
+                <MenuItem value="cm³">cm³</MenuItem>
+                <MenuItem value="m³">m³</MenuItem>
+              </Select>
+            </FormControl>
             <TextField
               label="Ownership"
               value={formData.ownership}

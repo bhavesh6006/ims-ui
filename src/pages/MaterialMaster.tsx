@@ -38,7 +38,9 @@ type Material = {
   length_mm: string
   width_mm: string
   height_mm: string
+  dimension_unit: string
   weight_kg: string
+  weight_unit: string
   status: string
   created_at: string
   updated_at: string
@@ -104,7 +106,7 @@ const MaterialMaster: React.FC = () => {
     },
     {
       id: 'length_mm',
-      label: 'Dimensions (mm)',
+      label: 'Dimensions',
       format: (value: unknown, row?: unknown) => {
         const material = row as Material
         if (
@@ -113,12 +115,21 @@ const MaterialMaster: React.FC = () => {
           material.width_mm &&
           material.height_mm
         ) {
-          return `${material.length_mm}×${material.width_mm}×${material.height_mm}`
+          const unit = material.dimension_unit || 'mm'
+          return `${material.length_mm}×${material.width_mm}×${material.height_mm} ${unit}`
         }
         return 'N/A'
       },
     },
-    { id: 'weight_kg', label: 'Weight (kg)' },
+    {
+      id: 'weight_kg',
+      label: 'Weight',
+      format: (value: unknown, row?: unknown) => {
+        const material = row as Material
+        const unit = material?.weight_unit || 'kg'
+        return value ? `${value} ${unit}` : 'N/A'
+      },
+    },
     { id: 'status', label: 'Status' },
   ]
 
@@ -148,7 +159,9 @@ const MaterialMaster: React.FC = () => {
           length_mm: parseFloat(String(item?.length_mm ?? 0)).toFixed(2),
           width_mm: parseFloat(String(item?.width_mm ?? 0)).toFixed(2),
           height_mm: parseFloat(String(item?.height_mm ?? 0)).toFixed(2),
+          dimension_unit: item.dimension_unit || 'mm',
           weight_kg: parseFloat(String(item?.weight_kg ?? 0)).toFixed(3),
+          weight_unit: item.weight_unit || 'kg',
           status: item.status,
           created_at: item.created_at,
           updated_at: item.updated_at,
@@ -242,8 +255,8 @@ const MaterialMaster: React.FC = () => {
       width: parseFloat(material.width_mm),
       height: parseFloat(material.height_mm),
       weight: parseFloat(material.weight_kg),
-      unit: 'mm',
-      weightUnit: 'kg',
+      unit: (material.dimension_unit || 'mm') as 'mm' | 'cm' | 'm',
+      weightUnit: (material.weight_unit || 'kg') as 'kg' | 'g',
       description: '',
       status: material.status,
     })
@@ -286,7 +299,9 @@ const MaterialMaster: React.FC = () => {
         length_mm: formData.length.toString(),
         width_mm: formData.width.toString(),
         height_mm: formData.height.toString(),
+        dimension_unit: formData.unit,
         weight_kg: formData.weight.toString(),
+        weight_unit: formData.weightUnit,
         status: formData.status.toUpperCase(),
       }
 

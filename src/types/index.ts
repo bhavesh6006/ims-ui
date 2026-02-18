@@ -12,7 +12,9 @@ export interface Trolly extends Record<string, unknown> {
   length_mm?: string
   width_mm?: string
   height_mm?: string
+  dimension_unit?: string
   volume_mm3?: string
+  volume_unit?: string
   notes?: string
   status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE'
   createdAt?: string
