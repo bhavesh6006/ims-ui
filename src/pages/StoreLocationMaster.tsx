@@ -63,7 +63,7 @@ const StoreLocationMaster: React.FC = () => {
   const [antennaMappings, setAntennaMappings] = useState<
     Array<{
       mapping_id?: string // for tracking existing mappings
-      movement_type: 'IN' | 'OUT'
+      movement_type: 'IN' | 'OUT' | 'CONSUMED'
       antenna1_id: number | ''
       antenna1_mapping_id?: string
       antenna2_id: number | ''
@@ -249,7 +249,7 @@ const StoreLocationMaster: React.FC = () => {
     })
 
     const rows: Array<{
-      movement_type: 'IN' | 'OUT'
+      movement_type: 'IN' | 'OUT' | 'CONSUMED'
       antenna1_id: number | ''
       antenna1_mapping_id?: string
       antenna2_id: number | ''
@@ -264,7 +264,7 @@ const StoreLocationMaster: React.FC = () => {
         const second = antennas[i + 1] // might be undefined if odd number
 
         rows.push({
-          movement_type: movementType as 'IN' | 'OUT',
+          movement_type: movementType as 'IN' | 'OUT' | 'CONSUMED',
           antenna1_id: first?.antenna_id || '',
           antenna1_mapping_id: first?.mapping_id,
           antenna2_id: second?.antenna_id || '',
@@ -314,11 +314,14 @@ const StoreLocationMaster: React.FC = () => {
   const handleAntennaMappingChange = (
     index: number,
     field: 'movement_type' | 'antenna1_id' | 'antenna2_id',
-    value: string | number | 'IN' | 'OUT'
+    value: string | number | 'IN' | 'OUT' | 'CONSUMED'
   ) => {
     const updated = [...antennaMappings]
     if (field === 'movement_type') {
-      updated[index] = { ...updated[index], [field]: value as 'IN' | 'OUT' }
+      updated[index] = {
+        ...updated[index],
+        [field]: value as 'IN' | 'OUT' | 'CONSUMED',
+      }
     } else {
       updated[index] = {
         ...updated[index],
@@ -355,13 +358,13 @@ const StoreLocationMaster: React.FC = () => {
 
         const mappingsToAdd: Array<{
           antenna_id: number
-          movement_type: 'IN' | 'OUT'
+          movement_type: 'IN' | 'OUT' | 'CONSUMED'
         }> = []
         const mappingsToRemove: string[] = []
         const mappingsToUpdate: Array<{
           mapping_id: string
           antenna_id: number
-          movement_type: 'IN' | 'OUT'
+          movement_type: 'IN' | 'OUT' | 'CONSUMED'
         }> = []
 
         // Track which existing mappings are still in use
@@ -462,7 +465,7 @@ const StoreLocationMaster: React.FC = () => {
         // For creating, send all mappings
         const antenna_mappings: Array<{
           antenna_id: number
-          movement_type: 'IN' | 'OUT'
+          movement_type: 'IN' | 'OUT' | 'CONSUMED'
         }> = []
 
         antennaMappings.forEach((row) => {
@@ -708,12 +711,13 @@ const StoreLocationMaster: React.FC = () => {
                                 handleAntennaMappingChange(
                                   index,
                                   'movement_type',
-                                  e.target.value as 'IN' | 'OUT'
+                                  e.target.value as 'IN' | 'OUT' | 'CONSUMED'
                                 )
                               }
                             >
                               <MenuItem value="IN">IN</MenuItem>
                               <MenuItem value="OUT">OUT</MenuItem>
+                              <MenuItem value="CONSUMED">CONSUMED</MenuItem>
                             </Select>
                           </FormControl>
                         </TableCell>
@@ -767,24 +771,22 @@ const StoreLocationMaster: React.FC = () => {
                                 return `Antenna ${selected}`
                               }}
                             >
-                              {getAvailableAntennas(index, 'antenna1').map(
-                                (antenna) => {
-                                  const deviceName =
-                                    antenna.device?.device_name || 'Unknown'
-                                  const antennaName = antenna.antenna_name
-                                    ? ` (${antenna.antenna_name})`
-                                    : ''
-                                  return (
-                                    <MenuItem
-                                      key={antenna.antenna_id}
-                                      value={antenna.antenna_id}
-                                    >
-                                      {deviceName} #{antenna.antenna_no}
-                                      {antennaName}
-                                    </MenuItem>
-                                  )
-                                }
-                              )}
+                              {getAvailableAntennas().map((antenna) => {
+                                const deviceName =
+                                  antenna.device?.device_name || 'Unknown'
+                                const antennaName = antenna.antenna_name
+                                  ? ` (${antenna.antenna_name})`
+                                  : ''
+                                return (
+                                  <MenuItem
+                                    key={antenna.antenna_id}
+                                    value={antenna.antenna_id}
+                                  >
+                                    {deviceName} #{antenna.antenna_no}
+                                    {antennaName}
+                                  </MenuItem>
+                                )
+                              })}
                             </Select>
                           </FormControl>
                         </TableCell>
@@ -841,24 +843,22 @@ const StoreLocationMaster: React.FC = () => {
                               <MenuItem value="">
                                 <em>None</em>
                               </MenuItem>
-                              {getAvailableAntennas(index, 'antenna2').map(
-                                (antenna) => {
-                                  const deviceName =
-                                    antenna.device?.device_name || 'Unknown'
-                                  const antennaName = antenna.antenna_name
-                                    ? ` (${antenna.antenna_name})`
-                                    : ''
-                                  return (
-                                    <MenuItem
-                                      key={antenna.antenna_id}
-                                      value={antenna.antenna_id}
-                                    >
-                                      {deviceName} #{antenna.antenna_no}
-                                      {antennaName}
-                                    </MenuItem>
-                                  )
-                                }
-                              )}
+                              {getAvailableAntennas().map((antenna) => {
+                                const deviceName =
+                                  antenna.device?.device_name || 'Unknown'
+                                const antennaName = antenna.antenna_name
+                                  ? ` (${antenna.antenna_name})`
+                                  : ''
+                                return (
+                                  <MenuItem
+                                    key={antenna.antenna_id}
+                                    value={antenna.antenna_id}
+                                  >
+                                    {deviceName} #{antenna.antenna_no}
+                                    {antennaName}
+                                  </MenuItem>
+                                )
+                              })}
                             </Select>
                           </FormControl>
                         </TableCell>
