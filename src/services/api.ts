@@ -1,4 +1,6 @@
 import axios, { type AxiosInstance, type AxiosError } from 'axios'
+import { setupApiPermissionInterceptor } from '../utils/apiPermissionInterceptor'
+import { normalizeRole } from '../utils/permissions'
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
@@ -9,6 +11,20 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+})
+
+// Permission interceptor - block unauthorized API calls before they are sent
+setupApiPermissionInterceptor(api, () => {
+  try {
+    const userData = localStorage.getItem('user')
+    if (userData) {
+      const user = JSON.parse(userData)
+      return user?.role ? normalizeRole(user.role) : null
+    }
+    return null
+  } catch {
+    return null
+  }
 })
 
 // Request interceptor - add auth token

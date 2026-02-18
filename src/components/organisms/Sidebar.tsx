@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   Drawer,
   List,
@@ -19,6 +19,8 @@ import AssessmentIcon from '@mui/icons-material/Assessment'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LocationOnIcon from '@mui/icons-material/LocationOn'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { getAccessibleRoutes, normalizeRole } from '../../utils/permissions'
+import { UserRole } from '../../types/auth.types'
 
 const drawerWidth = 240
 
@@ -86,9 +88,37 @@ interface SidebarProps {
   onClose: () => void
 }
 
+const getUserRole = (): UserRole | null => {
+  try {
+    const userData = localStorage.getItem('user')
+    if (userData) {
+      const user = JSON.parse(userData)
+      return user?.role ? normalizeRole(user.role) : null
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
   const navigate = useNavigate()
   const location = useLocation()
+
+  const role = getUserRole()
+
+  const accessibleRoutes = useMemo(() => {
+    if (!role) return []
+    return getAccessibleRoutes(role)
+  }, [role])
+
+  const filteredMenuItems = useMemo(() => {
+    return menuItems.filter((item) => accessibleRoutes.includes(item.path))
+  }, [accessibleRoutes])
+
+  const filteredSettingsItems = useMemo(() => {
+    return settingsItems.filter((item) => accessibleRoutes.includes(item.path))
+  }, [accessibleRoutes])
 
   const handleNavigation = (path: string) => {
     navigate(path)
@@ -111,7 +141,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
     >
       <Toolbar />
       <List>
-        {menuItems.map((item) => (
+        {filteredMenuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
               selected={location.pathname === item.path}
@@ -123,20 +153,24 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
           </ListItem>
         ))}
       </List>
-      <Divider />
-      <List>
-        {settingsItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => handleNavigation(item.path)}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
+      {filteredSettingsItems.length > 0 && (
+        <>
+          <Divider />
+          <List>
+            {filteredSettingsItems.map((item) => (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton
+                  selected={location.pathname === item.path}
+                  onClick={() => handleNavigation(item.path)}
+                >
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </>
+      )}
     </Drawer>
   )
 }

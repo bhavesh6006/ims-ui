@@ -40,8 +40,8 @@ const UserManagement: React.FC = () => {
   const [userForm, setUserForm] = useState({
     username: '',
     email: '',
-    role: 'Operator' as 'Admin' | 'StoreManager' | 'Operator',
-    status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
+    role: 'Operator' as 'Admin' | 'Store Manager' | 'Operator',
+    status: true as true | false,
   })
 
   const userColumns: Column[] = [
@@ -49,10 +49,16 @@ const UserManagement: React.FC = () => {
     { id: 'email', label: 'Email' },
     { id: 'role', label: 'Role' },
     {
-      id: 'status',
+      id: 'is_active',
       label: 'Status',
-      format: (value: unknown) => {
-        return value === 'ACTIVE' ? 'Active' : 'Inactive'
+      format: (is_active: unknown) => {
+        if (typeof is_active === 'boolean')
+          return is_active ? 'Active' : 'Inactive'
+        if (typeof is_active === 'string')
+          return is_active.toUpperCase() === 'ACTIVE' || is_active === 'true'
+            ? 'Active'
+            : 'Inactive'
+        return is_active == true ? 'Active' : 'Inactive'
       },
     },
   ]
@@ -94,18 +100,30 @@ const UserManagement: React.FC = () => {
       username: '',
       email: '',
       role: 'Operator',
-      status: 'ACTIVE',
+      status: true,
     })
     setModalOpen(true)
   }
 
   const handleEdit = (user: User) => {
     setEditingItem(user)
+    console.log('Editing user:', user)
+
+    // Normalize status to boolean
+    let normalizedStatus = true
+    if (typeof user.is_active === 'boolean') {
+      normalizedStatus = user.is_active
+    } else if (typeof user.is_active === 'string') {
+      normalizedStatus =
+        (user.is_active as string).toUpperCase() === 'ACTIVE' ||
+        user.is_active === 'true'
+    }
+
     setUserForm({
       username: user.username,
       email: user.email || '',
-      role: user.role as 'Admin' | 'StoreManager' | 'Operator',
-      status: user.status as 'ACTIVE' | 'INACTIVE',
+      role: user.role as 'Admin' | 'Store Manager' | 'Operator',
+      status: normalizedStatus,
     })
     setModalOpen(true)
   }
@@ -133,11 +151,19 @@ const UserManagement: React.FC = () => {
         return
       }
 
+      const payload = {
+        ...userForm,
+        status: userForm.status, // boolean: true/false
+      }
+
+      console.log('Submitting payload:', payload)
+
       if (editingItem) {
-        await userService.update(editingItem.user_id, userForm)
+        const response = await userService.update(editingItem.user_id, payload)
+        console.log('Update response:', response)
         showAlert('User updated', 'success')
       } else {
-        await userService.create(userForm)
+        await userService.create(payload)
         showAlert('User created', 'success')
       }
       setModalOpen(false)
@@ -226,31 +252,31 @@ const UserManagement: React.FC = () => {
                     ...userForm,
                     role: e.target.value as
                       | 'Admin'
-                      | 'StoreManager'
+                      | 'Store Manager'
                       | 'Operator',
                   })
                 }
                 label="Role"
               >
                 <MenuItem value="Admin">Admin</MenuItem>
-                <MenuItem value="StoreManager">Store Manager</MenuItem>
+                <MenuItem value="Store Manager">Store Manager</MenuItem>
                 <MenuItem value="Operator">Operator</MenuItem>
               </Select>
             </FormControl>
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>
               <Select
-                value={userForm.status}
+                value={userForm.status ? 'true' : 'false'}
                 onChange={(e) =>
                   setUserForm({
                     ...userForm,
-                    status: e.target.value as 'ACTIVE' | 'INACTIVE',
+                    status: e.target.value === 'true',
                   })
                 }
                 label="Status"
               >
-                <MenuItem value="ACTIVE">Active</MenuItem>
-                <MenuItem value="INACTIVE">Inactive</MenuItem>
+                <MenuItem value="true">Active</MenuItem>
+                <MenuItem value="false">Inactive</MenuItem>
               </Select>
             </FormControl>
           </Box>
