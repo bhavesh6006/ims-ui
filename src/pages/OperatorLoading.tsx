@@ -317,7 +317,9 @@ const OperatorLoading: React.FC = () => {
       const loadedQuantity =
         loadingType === 'full' ? mappedQuantity : partialQuantity
       const newOutputPlan = selectedOperatorWO.output_plan + loadedQuantity
-      const newInputPlan = selectedOperatorWO.input_plan - loadedQuantity
+      const newInputPlan = selectedOperatorWO.input_plan
+      const newConsumedQuantity = selectedOperatorWO.consumed_quantity
+      const newRemainingQuantity = newOutputPlan - newConsumedQuantity
 
       // Determine new status
       let newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' =
@@ -349,6 +351,8 @@ const OperatorLoading: React.FC = () => {
       const updatePayload = {
         input_plan: newInputPlan,
         output_plan: newOutputPlan,
+        consumed_quantity: newConsumedQuantity,
+        balance_quantity: newRemainingQuantity,
         status: newStatus,
         updated_by: 'current-user-id', // TODO: Get from auth context
       }
@@ -432,10 +436,13 @@ const OperatorLoading: React.FC = () => {
                   <strong>Disp Type</strong>
                 </TableCell>
                 <TableCell>
-                  <strong>Input Plan</strong>
+                  <strong>Planned</strong>
                 </TableCell>
                 <TableCell>
-                  <strong>Output Plan</strong>
+                  <strong>In Stock</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Consumed</strong>
                 </TableCell>
                 <TableCell>
                   <strong>Balance</strong>
@@ -478,7 +485,10 @@ const OperatorLoading: React.FC = () => {
                     <TableCell>{wo.disp_type}</TableCell>
                     <TableCell>{wo.input_plan}</TableCell>
                     <TableCell>{wo.output_plan}</TableCell>
-                    <TableCell>{wo.input_plan - wo.output_plan}</TableCell>
+                    <TableCell>{wo.consumed_quantity}</TableCell>
+                    <TableCell>
+                      {wo.output_plan - wo.consumed_quantity}
+                    </TableCell>
                     <TableCell>
                       {activeTab === 0 ? (
                         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -542,9 +552,10 @@ const OperatorLoading: React.FC = () => {
             {selectedOperatorWO.date}
           </Typography>
           <Typography variant="body2">
-            Input Plan: {selectedOperatorWO.input_plan} | Current Output:{' '}
+            Planned: {selectedOperatorWO.input_plan} | Current Output:{' '}
             {selectedOperatorWO.output_plan} | Balance:{' '}
-            {selectedOperatorWO.input_plan - selectedOperatorWO.output_plan}
+            {selectedOperatorWO.output_plan -
+              selectedOperatorWO.consumed_quantity}
           </Typography>
         </Paper>
 
@@ -686,7 +697,7 @@ const OperatorLoading: React.FC = () => {
                     </strong>
                   </Typography>
                   <Typography variant="body2">
-                    New Output Plan:{' '}
+                    New In Stock:{' '}
                     <strong>
                       {selectedOperatorWO.output_plan +
                         (loadingType === 'full'
