@@ -319,7 +319,8 @@ const OperatorLoading: React.FC = () => {
       const newOutputPlan = selectedOperatorWO.output_plan + loadedQuantity
       const newInputPlan = selectedOperatorWO.input_plan
       const newConsumedQuantity = selectedOperatorWO.consumed_quantity
-      const newRemainingQuantity = newOutputPlan - newConsumedQuantity
+      const newRemainingQuantity =
+        newInputPlan - newOutputPlan - newConsumedQuantity
 
       // Determine new status
       let newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' =
@@ -445,7 +446,7 @@ const OperatorLoading: React.FC = () => {
                   <strong>Consumed</strong>
                 </TableCell>
                 <TableCell>
-                  <strong>Balance</strong>
+                  <strong>Pending</strong>
                 </TableCell>
                 <TableCell>
                   <strong>Action</strong>
@@ -487,7 +488,7 @@ const OperatorLoading: React.FC = () => {
                     <TableCell>{wo.output_plan}</TableCell>
                     <TableCell>{wo.consumed_quantity}</TableCell>
                     <TableCell>
-                      {wo.output_plan - wo.consumed_quantity}
+                      {wo.input_plan - wo.output_plan - wo.consumed_quantity}
                     </TableCell>
                     <TableCell>
                       {activeTab === 0 ? (
