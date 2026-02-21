@@ -14,6 +14,7 @@ import {
   DialogActions,
   IconButton,
   Paper,
+  FormHelperText,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
@@ -47,6 +48,15 @@ const TrollyMaster: React.FC = () => {
     severity: 'success' as 'success' | 'error',
   })
   const [loading, setLoading] = useState(false)
+
+  interface FormErrors {
+    trollyCode?: string
+    trollyTypeId?: string
+    trollyConditionId?: string
+    qrCode?: string
+  }
+
+  const [errors, setErrors] = useState<FormErrors>({})
 
   const [formData, setFormData] = useState({
     trollyCode: '',
@@ -178,6 +188,30 @@ const TrollyMaster: React.FC = () => {
     loadTrolleyConditions()
   }, [loadTrollies, loadTrolleyTypes, loadTrolleyConditions])
 
+  const validate = (): boolean => {
+    const newErrors: FormErrors = {}
+
+    if (!formData.trollyCode?.trim()) {
+      newErrors.trollyCode = 'Trolley Code is required'
+    }
+
+    if (!formData.trollyTypeId) {
+      newErrors.trollyTypeId = 'Type is required'
+    }
+
+    if (!formData.trollyConditionId) {
+      newErrors.trollyConditionId = 'Condition is required'
+    }
+
+    if (!formData.qrCode?.trim()) {
+      newErrors.qrCode = 'QR Code / RFID is required'
+    }
+
+    setErrors(newErrors)
+
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleAdd = () => {
     setEditingTrolly(null)
     setFormData({
@@ -266,6 +300,8 @@ const TrollyMaster: React.FC = () => {
   }
 
   const handleSubmit = async () => {
+    if (!validate()) return
+
     // Validate required fields
     if (!formData.trollyCode.trim()) {
       showAlert('Trolley Code is required', 'error')
@@ -370,23 +406,31 @@ const TrollyMaster: React.FC = () => {
             <TextField
               label="Trolley Code"
               value={formData.trollyCode}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, trollyCode: e.target.value })
-              }
+                setErrors({ ...errors, trollyCode: undefined })
+              }}
               fullWidth
               required
+              error={Boolean(errors.trollyCode)}
+              helperText={errors.trollyCode}
             />
-            <FormControl fullWidth required>
+            <FormControl
+              fullWidth
+              required
+              error={Boolean(errors.trollyTypeId)}
+            >
               <InputLabel>Type</InputLabel>
               <Select
                 value={formData.trollyTypeId}
                 label="Type"
-                onChange={(e) =>
+                onChange={(e) => {
                   setFormData({
                     ...formData,
                     trollyTypeId: e.target.value as string,
                   })
-                }
+                  setErrors({ ...errors, trollyTypeId: undefined })
+                }}
               >
                 {trolleyTypes.map((type) => (
                   <MenuItem
@@ -397,18 +441,24 @@ const TrollyMaster: React.FC = () => {
                   </MenuItem>
                 ))}
               </Select>
+              <FormHelperText>{errors.trollyTypeId}</FormHelperText>
             </FormControl>
-            <FormControl fullWidth required>
+            <FormControl
+              fullWidth
+              required
+              error={Boolean(errors.trollyConditionId)}
+            >
               <InputLabel>Condition</InputLabel>
               <Select
                 value={formData.trollyConditionId}
                 label="Condition"
-                onChange={(e) =>
+                onChange={(e) => {
                   setFormData({
                     ...formData,
                     trollyConditionId: e.target.value as string,
                   })
-                }
+                  setErrors({ ...errors, trollyConditionId: undefined })
+                }}
               >
                 {trolleyConditions.map((condition) => (
                   <MenuItem
@@ -419,14 +469,19 @@ const TrollyMaster: React.FC = () => {
                   </MenuItem>
                 ))}
               </Select>
+              <FormHelperText>{errors.trollyConditionId}</FormHelperText>
             </FormControl>
             <TextField
               label="QR Code / RFID"
               value={formData.qrCode}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, qrCode: e.target.value })
-              }
+                setErrors({ ...errors, qrCode: undefined })
+              }}
               fullWidth
+              required
+              error={Boolean(errors.qrCode)}
+              helperText={errors.qrCode}
             />
             <TextField
               label="Length"
