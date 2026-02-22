@@ -341,8 +341,24 @@ const TrollyMaster: React.FC = () => {
       }
       setModalOpen(false)
       loadTrollies()
-    } catch {
-      showAlert('Operation failed', 'error')
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof (error as { response?: { data?: { message?: string } } })
+          .response === 'object' &&
+        (error as { response?: { data?: { message?: string } } }).response?.data
+          ?.message
+      ) {
+        showAlert(
+          (error as { response: { data: { message: string } } }).response.data
+            .message,
+          'error'
+        )
+      } else {
+        showAlert('Failed to save trolly', 'error')
+      }
     }
   }
 
