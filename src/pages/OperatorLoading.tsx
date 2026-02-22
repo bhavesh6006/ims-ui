@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -26,11 +26,14 @@ import {
   DialogActions,
   IconButton,
 } from '@mui/material'
-import ScannerIcon from '@mui/icons-material/QrCodeScanner'
 import SearchIcon from '@mui/icons-material/Search'
 import CancelIcon from '@mui/icons-material/Cancel'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import CloseIcon from '@mui/icons-material/Close'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import CameraAltIcon from '@mui/icons-material/CameraAlt'
+import KeyboardIcon from '@mui/icons-material/Keyboard'
+import QRScanner from '../components/QRScanner'
 import {
   trollyService,
   mappingService,
@@ -39,6 +42,7 @@ import {
   materialService,
 } from '../services'
 import { Alert } from '../components/molecules'
+import { ActionButton } from '../components/atoms'
 import type { Trolly } from '../types'
 import type { WorkOrderResponse } from '../services/workOrderService'
 import type { MaterialTrolleyMapping } from '../services/mappingService'
@@ -71,8 +75,8 @@ const OperatorLoading: React.FC = () => {
   const [loadingType, setLoadingType] = useState('full')
   const [partialQuantity, setPartialQuantity] = useState(0)
   const [mappedQuantity, setMappedQuantity] = useState(0)
-  const [showLoadingScreen, setShowLoadingScreen] = useState(false)
-  const [activeTab, setActiveTab] = useState(0) // 0: Pending, 1: Closed
+  const [showLoadingDialog, setShowLoadingDialog] = useState(false)
+  const [activeTab, setActiveTab] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [alert, setAlert] = useState({
     open: false,
@@ -83,6 +87,7 @@ const OperatorLoading: React.FC = () => {
     null
   )
   const [loading, setLoading] = useState(false)
+  const [scanning, setScanning] = useState(false)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [viewingWorkOrder, setViewingWorkOrder] =
     useState<WorkOrderResponse | null>(null)
@@ -90,6 +95,11 @@ const OperatorLoading: React.FC = () => {
     MaterialStockEntry[]
   >([])
   const [loadingEntries, setLoadingEntries] = useState(false)
+  const [useCameraScanner, setUseCameraScanner] = useState(true)
+  const [syncing, setSyncing] = useState(false)
+
+  const trolleyInputRef = useRef<HTMLInputElement>(null)
+  const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const showAlert = (message: string, severity: 'success' | 'error') => {
     setAlert({ open: true, message, severity })
@@ -110,7 +120,6 @@ const OperatorLoading: React.FC = () => {
     }
   }
 
-  // Load operator work orders on component mount
   useEffect(() => {
     fetchWorkOrders()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,81 +127,31 @@ const OperatorLoading: React.FC = () => {
 
   const handleSelectWorkOrder = (workOrder: WorkOrderResponse) => {
     setSelectedOperatorWO(workOrder)
-    setShowLoadingScreen(true)
+    setShowLoadingDialog(true)
+    settrolleyQRCode('')
+    setScannedTrolley(null)
+    setLoadingType('full')
+    setPartialQuantity(0)
+    setMappedQuantity(0)
+    setMappingData(null)
+    setUseCameraScanner(true)
     showAlert(`Work Order ${workOrder.work_order_number} selected`, 'success')
+    // Auto-focus the trolley input after dialog opens
+    setTimeout(() => {
+      trolleyInputRef.current?.focus()
+    }, 300)
   }
 
   const handleCancelLoading = () => {
-    setShowLoadingScreen(false)
+    setShowLoadingDialog(false)
     setSelectedOperatorWO(null)
     settrolleyQRCode('')
     setScannedTrolley(null)
     setLoadingType('full')
     setPartialQuantity(0)
     setMappedQuantity(0)
-  }
-
-  const handleScanClick = () => {
-    // Simulate barcode scanner - in real implementation, this will trigger actual scanner device
-    // For now, we'll just focus the input field for manual entry or scanner input
-    const input = document.querySelector(
-      'input[name="trolleyQRCode"]'
-    ) as HTMLInputElement
-    if (input) {
-      input.focus()
-    }
-    showAlert('Ready to scan - please use your scanner device', 'success')
-  }
-
-  const handleNextAfterScan = async () => {
-    if (!trolleyQRCode.trim()) {
-      showAlert('Please enter a trolley barcode or QR code', 'error')
-      return
-    }
-
-    try {
-      const trolleyResponse = await trollyService.scan(trolleyQRCode)
-      const trolleyData = (trolleyResponse.data.data ||
-        trolleyResponse.data) as Trolly
-
-      if (!trolleyData) {
-        showAlert('Trolley not found', 'error')
-        return
-      }
-
-      setScannedTrolley(trolleyData)
-      showAlert('Trolley scanned successfully', 'success')
-
-      const trolleyTypeId = trolleyData.trolly_type_id
-
-      // Fetch material details by material code
-      if (selectedOperatorWO?.sub_tool && trolleyTypeId) {
-        try {
-          const materialResponse = await materialService.getByCode(
-            selectedOperatorWO.sub_tool
-          )
-          if (materialResponse.success && materialResponse.data) {
-            const fetchedMaterialId = materialResponse.data.material_id
-
-            // Now fetch mapping with the correct material_id
-            await fetchMaterialTrolleyMapping(
-              String(fetchedMaterialId),
-              String(trolleyTypeId)
-            )
-          } else {
-            showAlert('Material not found', 'error')
-          }
-        } catch (error) {
-          showAlert('Failed to fetch material details', 'error')
-          console.error('Material fetch error:', error)
-        }
-      } else {
-        showAlert('Missing material code or trolley type information', 'error')
-      }
-    } catch (error) {
-      showAlert('Failed to scan trolley', 'error')
-      console.error('Trolley scan error:', error)
-    }
+    setMappingData(null)
+    setUseCameraScanner(true)
   }
 
   const fetchMaterialTrolleyMapping = async (
@@ -233,6 +192,110 @@ const OperatorLoading: React.FC = () => {
     }
   }
 
+  const processTrolleyScan = useCallback(
+    async (code: string) => {
+      if (!code.trim() || !selectedOperatorWO) return
+
+      setScanning(true)
+      try {
+        const trolleyResponse = await trollyService.scan(code)
+        const trolleyData = (trolleyResponse.data.data ||
+          trolleyResponse.data) as Trolly
+
+        if (!trolleyData) {
+          showAlert('Trolley not found', 'error')
+          setScanning(false)
+          return
+        }
+
+        if (trolleyData.is_occupied) {
+          showAlert('Trolley Already Occupied', 'error')
+          setScanning(false)
+          return
+        }
+
+        setScannedTrolley(trolleyData)
+        showAlert('Trolley scanned successfully', 'success')
+
+        const trolleyTypeId = trolleyData.trolly_type_id
+
+        if (selectedOperatorWO?.sub_tool && trolleyTypeId) {
+          try {
+            const materialResponse = await materialService.getByCode(
+              selectedOperatorWO.sub_tool
+            )
+            if (materialResponse.success && materialResponse.data) {
+              const fetchedMaterialId = materialResponse.data.material_id
+              await fetchMaterialTrolleyMapping(
+                String(fetchedMaterialId),
+                String(trolleyTypeId)
+              )
+            } else {
+              showAlert('Material not found', 'error')
+            }
+          } catch (error) {
+            showAlert('Failed to fetch material details', 'error')
+            console.error('Material fetch error:', error)
+          }
+        } else {
+          showAlert(
+            'Missing material code or trolley type information',
+            'error'
+          )
+        }
+      } catch (error) {
+        showAlert('Failed to scan trolley', 'error')
+        console.error('Trolley scan error:', error)
+      } finally {
+        setScanning(false)
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [selectedOperatorWO]
+  )
+
+  const handleTrolleyInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    settrolleyQRCode(value)
+
+    // Clear any existing timeout
+    if (scanTimeoutRef.current) {
+      clearTimeout(scanTimeoutRef.current)
+    }
+
+    // Auto-trigger after a short delay (handles both scanner and paste)
+    if (value.trim()) {
+      scanTimeoutRef.current = setTimeout(() => {
+        processTrolleyScan(value)
+      }, 500)
+    }
+  }
+
+  const handleTrolleyKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && trolleyQRCode.trim()) {
+      // Clear any pending timeout and process immediately
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current)
+      }
+      processTrolleyScan(trolleyQRCode)
+    }
+  }
+
+  const handleCameraScan = (decodedText: string) => {
+    settrolleyQRCode(decodedText)
+    setUseCameraScanner(false)
+    processTrolleyScan(decodedText)
+  }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const handleViewEntries = async (workOrder: WorkOrderResponse) => {
     setViewingWorkOrder(workOrder)
     setViewDialogOpen(true)
@@ -260,19 +323,16 @@ const OperatorLoading: React.FC = () => {
     setMaterialStockEntries([])
   }
 
-  // Filter work orders based on tab and search query
   const getFilteredWorkOrders = () => {
     let filtered = operatorWorkOrders
 
     if (activeTab === 0) {
-      // Pending/Balance: status is PENDING or IN_PROGRESS and output_plan < input_plan
       filtered = filtered.filter(
         (wo) =>
           (wo.status === 'PENDING' || wo.status === 'IN_PROGRESS') &&
           wo.output_plan < wo.input_plan
       )
     } else {
-      // Closed: status is COMPLETED or CLOSED or output_plan >= input_plan
       filtered = filtered.filter(
         (wo) =>
           wo.status === 'COMPLETED' ||
@@ -322,7 +382,6 @@ const OperatorLoading: React.FC = () => {
       const newRemainingQuantity =
         newInputPlan - newOutputPlan - newConsumedQuantity
 
-      // Determine new status
       let newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' =
         selectedOperatorWO.status
       if (newInputPlan === 0) {
@@ -331,7 +390,6 @@ const OperatorLoading: React.FC = () => {
         newStatus = 'IN_PROGRESS'
       }
 
-      // Create material stock record
       const materialStockPayload = {
         material_code: selectedOperatorWO.sub_tool,
         trolley_code: scannedTrolley.trolley_code,
@@ -340,32 +398,32 @@ const OperatorLoading: React.FC = () => {
         work_order_id: selectedOperatorWO.id,
         work_order_number: selectedOperatorWO.work_order_number,
         loading_type: loadingType === 'full' ? 'FULL' : 'PARTIAL',
-        loaded_by: 'current-user-id', // TODO: Get from auth context
+        loaded_by: 'current-user-id',
         loaded_at: new Date().toISOString(),
         status: 'IN_STOCK',
         remarks: `Loaded from trolley ${scannedTrolley.trolley_code} (${scannedTrolley.trolly_type})`,
       }
 
       await materialStockService.createStock(materialStockPayload)
+      await trollyService.update(scannedTrolley.trolley_id, {
+        is_occupied: true,
+      })
 
-      // Update work order
       const updatePayload = {
         input_plan: newInputPlan,
         output_plan: newOutputPlan,
         consumed_quantity: newConsumedQuantity,
         balance_quantity: newRemainingQuantity,
         status: newStatus,
-        updated_by: 'current-user-id', // TODO: Get from auth context
+        updated_by: 'current-user-id',
       }
 
       await workOrderService.update(selectedOperatorWO.id, updatePayload)
 
       showAlert('Loading operation completed successfully', 'success')
 
-      // Refresh work orders list
       await fetchWorkOrders()
 
-      // Reset form
       setTimeout(() => {
         handleCancelLoading()
       }, 2000)
@@ -375,12 +433,25 @@ const OperatorLoading: React.FC = () => {
     }
   }
 
+  const handleSyncWorkOrders = async () => {
+    setSyncing(true)
+    try {
+      // TODO: Replace with external API call to sync work order data into DB
+      await fetchWorkOrders()
+      showAlert('Work orders refreshed successfully', 'success')
+    } catch (error) {
+      showAlert('Failed to sync work orders', 'error')
+      console.error('Sync error:', error)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   const renderMainScreen = () => {
     const filteredOrders = getFilteredWorkOrders()
 
     return (
       <Box>
-        {/* Search Box */}
         <TextField
           fullWidth
           placeholder="Search by Date, Material Code (SUB Tool), or Work Order Number"
@@ -456,7 +527,7 @@ const OperatorLoading: React.FC = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={13} align="center">
+                  <TableCell colSpan={14} align="center">
                     <Typography variant="body2" color="text.secondary" py={3}>
                       Loading...
                     </Typography>
@@ -464,7 +535,7 @@ const OperatorLoading: React.FC = () => {
                 </TableRow>
               ) : filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={13} align="center">
+                  <TableCell colSpan={14} align="center">
                     <Typography variant="body2" color="text.secondary" py={3}>
                       No work orders found
                     </Typography>
@@ -502,14 +573,14 @@ const OperatorLoading: React.FC = () => {
                           >
                             View
                           </Button>
-                          <Button
+                          <ActionButton
+                            label="Load"
+                            icon={undefined}
+                            onClick={() => handleSelectWorkOrder(wo)}
                             variant="contained"
                             color="primary"
                             size="small"
-                            onClick={() => handleSelectWorkOrder(wo)}
-                          >
-                            Load
-                          </Button>
+                          />
                         </Box>
                       ) : (
                         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -538,14 +609,14 @@ const OperatorLoading: React.FC = () => {
     )
   }
 
-  const renderLoadingScreen = () => {
+  const renderLoadingDialogContent = () => {
     if (!selectedOperatorWO) return null
 
     return (
       <Box>
         <Paper sx={{ p: 2, mb: 3, backgroundColor: 'primary.lighter' }}>
           <Typography variant="h6" color="primary.main" gutterBottom>
-            Selected Work Order: {selectedOperatorWO.work_order_number}
+            Work Order: {selectedOperatorWO.work_order_number}
           </Typography>
           <Typography variant="body2">
             Tool: {selectedOperatorWO.tool} | Material Code:{' '}
@@ -562,47 +633,72 @@ const OperatorLoading: React.FC = () => {
 
         {!scannedTrolley ? (
           <Box>
-            <Typography variant="h6" gutterBottom>
-              Scan Trolley Barcode/QR Code
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, mt: 3, mb: 3 }}>
-              <TextField
-                name="trolleyQRCode"
-                label="Trolley barcode/QR Code"
-                value={trolleyQRCode}
-                onChange={(e) => settrolleyQRCode(e.target.value)}
-                fullWidth
-                placeholder="Enter or scan Trolley barcode/QR code"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && trolleyQRCode.trim()) {
-                    handleNextAfterScan()
-                  }
-                }}
-              />
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mb: 1,
+              }}
+            >
+              <Typography variant="h6">Scan Trolley Barcode/QR Code</Typography>
               <Button
+                size="small"
                 variant="outlined"
-                startIcon={<ScannerIcon />}
-                onClick={handleScanClick}
-                sx={{ minWidth: 120 }}
+                startIcon={
+                  useCameraScanner ? <KeyboardIcon /> : <CameraAltIcon />
+                }
+                onClick={() => setUseCameraScanner(!useCameraScanner)}
               >
-                Scan
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleNextAfterScan}
-                disabled={!trolleyQRCode.trim()}
-                sx={{ minWidth: 120 }}
-              >
-                Next
+                {useCameraScanner ? 'Manual Input' : 'Use Camera'}
               </Button>
             </Box>
-            <Box sx={{ p: 2, bgcolor: 'info.lighter', borderRadius: 1 }}>
-              <Typography variant="caption" color="info.main">
-                💡 Tip: Click "Scan" button and use your barcode/QR scanner
-                device, or enter the code manually and click "Next"
-              </Typography>
-            </Box>
+
+            {useCameraScanner ? (
+              <Box sx={{ mt: 2 }}>
+                <QRScanner
+                  onScan={handleCameraScan}
+                  onError={(err) => console.warn('Scanner error:', err)}
+                />
+              </Box>
+            ) : (
+              <>
+                <TextField
+                  inputRef={trolleyInputRef}
+                  name="trolleyQRCode"
+                  label="Trolley Barcode/QR Code"
+                  value={trolleyQRCode}
+                  onChange={handleTrolleyInputChange}
+                  onKeyDown={handleTrolleyKeyDown}
+                  fullWidth
+                  autoFocus
+                  placeholder="Scan or paste trolley barcode/QR code"
+                  disabled={scanning}
+                  helperText={
+                    scanning
+                      ? 'Processing...'
+                      : 'Place cursor here and scan, or paste/type the code'
+                  }
+                  sx={{ mt: 2 }}
+                />
+                {scanning && (
+                  <Box sx={{ mt: 2, textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Scanning trolley...
+                    </Typography>
+                  </Box>
+                )}
+                <Box
+                  sx={{ p: 2, mt: 2, bgcolor: 'info.lighter', borderRadius: 1 }}
+                >
+                  <Typography variant="caption" color="info.main">
+                    💡 Tip: The input is ready for scanning. Use your barcode/QR
+                    scanner device or paste the code — it will be processed
+                    automatically.
+                  </Typography>
+                </Box>
+              </>
+            )}
           </Box>
         ) : (
           <Box>
@@ -709,31 +805,6 @@ const OperatorLoading: React.FC = () => {
                 </Box>
               </Paper>
             )}
-
-            <Box
-              sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}
-            >
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<CancelIcon />}
-                onClick={handleCancelLoading}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                color="success"
-                onClick={handleSubmit}
-                disabled={
-                  !scannedTrolley ||
-                  mappedQuantity === 0 ||
-                  (loadingType === 'partial' && partialQuantity <= 0)
-                }
-              >
-                Confirm & Save
-              </Button>
-            </Box>
           </Box>
         )}
       </Box>
@@ -742,13 +813,31 @@ const OperatorLoading: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Operator Loading
-      </Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 1,
+        }}
+      >
+        <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>
+          Operator Loading
+        </Typography>
+        <ActionButton
+          label="Refresh"
+          loadingLabel="Refresh"
+          loading={syncing}
+          icon={<RefreshIcon />}
+          onClick={handleSyncWorkOrders}
+          variant="contained"
+          color="primary"
+          size="small"
+          sx={{ minWidth: 110 }}
+        />
+      </Box>
 
-      <Paper sx={{ p: 3, mt: 3 }}>
-        {!showLoadingScreen ? renderMainScreen() : renderLoadingScreen()}
-      </Paper>
+      <Paper sx={{ p: 3, mt: 3 }}>{renderMainScreen()}</Paper>
 
       <Alert
         open={alert.open}
@@ -756,6 +845,54 @@ const OperatorLoading: React.FC = () => {
         severity={alert.severity}
         onClose={() => setAlert({ ...alert, open: false })}
       />
+
+      {/* Loading Dialog */}
+      <Dialog
+        open={showLoadingDialog}
+        onClose={handleCancelLoading}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Typography variant="h6">Load Material onto Trolley</Typography>
+            <IconButton onClick={handleCancelLoading} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>{renderLoadingDialogContent()}</DialogContent>
+        <DialogActions>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<CancelIcon />}
+            onClick={handleCancelLoading}
+          >
+            Cancel
+          </Button>
+          {scannedTrolley && (
+            <Button
+              variant="contained"
+              color="success"
+              onClick={handleSubmit}
+              disabled={
+                !scannedTrolley ||
+                mappedQuantity === 0 ||
+                (loadingType === 'partial' && partialQuantity <= 0)
+              }
+            >
+              Confirm & Save
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
 
       {/* Material Stock Entries Dialog */}
       <Dialog
