@@ -16,12 +16,15 @@ import {
   Chip,
   Stack,
   Autocomplete,
+  FormHelperText,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
 import { DataTable, type Column } from '../components/organisms'
 import { SearchBar, Alert } from '../components/molecules'
 import { antennaService, deviceService } from '../services'
+import { storeLocationService } from '../services/storeLocationService'
+import type { StoreLocation } from '../types/storeLocation'
 import type {
   Antenna,
   AntennaCreatePayload,
@@ -30,6 +33,7 @@ import type {
 import type { Device } from '../services/deviceService'
 
 const RFIDAntennaMaster: React.FC = () => {
+  const [storeLocations, setStoreLocations] = useState<StoreLocation[]>([])
   const [antennas, setAntennas] = useState<Antenna[]>([])
   const [filteredAntennas, setFilteredAntennas] = useState<Antenna[]>([])
   const [devices, setDevices] = useState<Device[]>([])
@@ -43,11 +47,20 @@ const RFIDAntennaMaster: React.FC = () => {
     severity: 'success' as 'success' | 'error',
   })
 
+  interface FormErrors {
+    device_id?: string
+    antenna_no?: string
+    antenna_name?: string
+    store_location_id?: string
+  }
+
+  const [errors, setErrors] = useState<FormErrors>({})
+
   const [formData, setFormData] = useState({
     device_id: null as number | null,
     antenna_no: '',
     antenna_name: '',
-    location_name: '',
+    store_location_id: '',
     zone_id: '',
     antenna_type: '',
     polarization: '',
@@ -71,7 +84,15 @@ const RFIDAntennaMaster: React.FC = () => {
     },
     { id: 'antenna_no', label: 'Antenna #' },
     { id: 'antenna_name', label: 'Antenna Name' },
-    { id: 'location_name', label: 'Location' },
+    {
+      id: 'store_location_id',
+      label: 'Location',
+      format: (value: unknown) => {
+        const id = value as string
+        const loc = storeLocations.find((l) => l.store_location_id === id)
+        return loc ? loc.store_name || loc.store_code : '-'
+      },
+    },
     {
       id: 'antenna_type',
       label: 'Type',
@@ -134,6 +155,15 @@ const RFIDAntennaMaster: React.FC = () => {
     }
   }, [])
 
+  const loadStoreLocations = useCallback(async () => {
+    try {
+      const response = await storeLocationService.getAll()
+      setStoreLocations(response.data?.data || response.data || [])
+    } catch {
+      setStoreLocations([])
+    }
+  }, [])
+
   const loadAntennas = useCallback(async () => {
     try {
       setLoading(true)
@@ -152,6 +182,7 @@ const RFIDAntennaMaster: React.FC = () => {
   useEffect(() => {
     loadDevices()
     loadAntennas()
+    loadStoreLocations()
   }, [loadDevices, loadAntennas])
 
   useEffect(() => {
@@ -178,7 +209,7 @@ const RFIDAntennaMaster: React.FC = () => {
       device_id: null,
       antenna_no: '',
       antenna_name: '',
-      location_name: '',
+      store_location_id: '',
       zone_id: '',
       antenna_type: '',
       polarization: '',
@@ -199,7 +230,7 @@ const RFIDAntennaMaster: React.FC = () => {
       device_id: antenna.device_id,
       antenna_no: antenna.antenna_no?.toString() || '',
       antenna_name: antenna.antenna_name || '',
-      location_name: antenna.location_name || '',
+      store_location_id: antenna.store_location_id?.toString() || '',
       zone_id: antenna.zone_id?.toString() || '',
       antenna_type: antenna.antenna_type || '',
       polarization: antenna.polarization || '',
@@ -231,8 +262,34 @@ const RFIDAntennaMaster: React.FC = () => {
     }
   }
 
+  const validate = (): boolean => {
+    const newErrors: FormErrors = {}
+
+    if (!formData.device_id) {
+      newErrors.device_id = 'Device is required'
+    }
+
+    if (!formData.antenna_no) {
+      newErrors.antenna_no = 'Antenna Number is required'
+    }
+
+    if (!formData.antenna_name) {
+      newErrors.antenna_name = 'Antenna Name is required'
+    }
+
+    if (!formData.store_location_id) {
+      newErrors.store_location_id = 'Store Location is required'
+    }
+
+    setErrors(newErrors)
+
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async () => {
     try {
+      if (!validate()) return
+
       // Validate required fields
       if (!formData.device_id || !formData.antenna_no) {
         showAlert('Device and Antenna Number are required', 'error')
@@ -244,7 +301,7 @@ const RFIDAntennaMaster: React.FC = () => {
         const updateData: AntennaUpdatePayload = {
           antenna_no: Number(formData.antenna_no),
           antenna_name: formData.antenna_name || undefined,
-          location_name: formData.location_name || undefined,
+          store_location_id: formData.store_location_id || undefined,
           zone_id: formData.zone_id ? Number(formData.zone_id) : undefined,
           antenna_type: formData.antenna_type || undefined,
           polarization: formData.polarization || undefined,
@@ -267,7 +324,7 @@ const RFIDAntennaMaster: React.FC = () => {
           device_id: formData.device_id,
           antenna_no: Number(formData.antenna_no),
           antenna_name: formData.antenna_name || undefined,
-          location_name: formData.location_name || undefined,
+          store_location_id: formData.store_location_id || undefined,
           zone_id: formData.zone_id ? Number(formData.zone_id) : undefined,
           antenna_type: formData.antenna_type || undefined,
           polarization: formData.polarization || undefined,
@@ -358,7 +415,7 @@ const RFIDAntennaMaster: React.FC = () => {
         </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
-            <Box sx={{ bgcolor: 'info.lighter', p: 2, borderRadius: 1 }}>
+            <Box sx={{ bgcolor: 'info.lighter', borderRadius: 1 }}>
               <Typography variant="body2" color="info.dark">
                 <strong>Note:</strong> Map physical antennas to logical zones
                 (IN/OUT gates) after device is added. TX power and RX
@@ -380,25 +437,35 @@ const RFIDAntennaMaster: React.FC = () => {
                   devices.find((d) => d.device_id === formData.device_id) ||
                   null
                 }
-                onChange={(_, value) =>
+                onChange={(_, value) => {
                   handleInputChange('device_id', value?.device_id || null)
-                }
+                  setErrors({ ...errors, device_id: undefined })
+                }}
                 disabled={!!editingAntenna}
                 renderInput={(params) => (
-                  <TextField {...params} label="Device *" required />
+                  <TextField
+                    {...params}
+                    label="Device"
+                    required
+                    error={Boolean(errors.device_id)}
+                    helperText={errors.device_id}
+                  />
                 )}
               />
               <TextField
-                label="Antenna Number *"
+                label="Antenna Number"
                 type="number"
                 fullWidth
                 required
                 value={formData.antenna_no}
-                onChange={(e) =>
+                onChange={(e) => {
                   handleInputChange('antenna_no', e.target.value)
-                }
+                  setErrors({ ...errors, antenna_no: undefined })
+                }}
                 disabled={!!editingAntenna}
                 placeholder="1, 2, 3, ..."
+                error={Boolean(errors.antenna_no)}
+                helperText={errors.antenna_no}
               />
             </Box>
 
@@ -407,20 +474,41 @@ const RFIDAntennaMaster: React.FC = () => {
                 label="Antenna Name"
                 fullWidth
                 value={formData.antenna_name}
-                onChange={(e) =>
+                onChange={(e) => {
                   handleInputChange('antenna_name', e.target.value)
-                }
+                  setErrors({ ...errors, antenna_name: undefined })
+                }}
                 placeholder="e.g., Gate1-IN-left"
+                required
+                error={Boolean(errors.antenna_name)}
+                helperText={errors.antenna_name}
               />
-              <TextField
-                label="Location Name"
+              <FormControl
                 fullWidth
-                value={formData.location_name}
-                onChange={(e) =>
-                  handleInputChange('location_name', e.target.value)
-                }
-                placeholder="e.g., Dock Door 3"
-              />
+                required
+                error={Boolean(errors.store_location_id)}
+              >
+                <InputLabel>Store Location</InputLabel>
+                <Select
+                  label="Store Location"
+                  value={formData.store_location_id}
+                  onChange={(e) => {
+                    handleInputChange('store_location_id', e.target.value)
+                    setErrors({ ...errors, store_location_id: undefined })
+                  }}
+                >
+                  <MenuItem value="">Select Store Location</MenuItem>
+                  {storeLocations.map((loc) => (
+                    <MenuItem
+                      key={loc.store_location_id}
+                      value={loc.store_location_id}
+                    >
+                      {loc.store_name || loc.store_code}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText>{errors.store_location_id}</FormHelperText>
+              </FormControl>
             </Box>
 
             <Box sx={{ display: 'flex', gap: 2 }}>

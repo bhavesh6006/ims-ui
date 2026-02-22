@@ -146,35 +146,25 @@ const TrollyMaster: React.FC = () => {
 
   const loadTrolleyTypes = useCallback(async () => {
     try {
-      const response = await trolleyTypeService.getAll()
-
-      // Handle different response structures
-      const data = response.data || response
-      const types = Array.isArray(data) ? data : []
-
+      const types = await trolleyTypeService.getAll()
       // Sort alphabetically by trolly_type
       const sortedTypes = types.sort((a, b) =>
         a.trolly_type.localeCompare(b.trolly_type)
       )
-
       setTrolleyTypes(sortedTypes)
     } catch {
       showAlert('Failed to load trolley types', 'error')
-      setTrolleyTypes([]) // Ensure it's always an array even on error
+      setTrolleyTypes([])
     }
   }, [])
 
   const loadTrolleyConditions = useCallback(async () => {
     try {
-      const response = await trolleyConditionService.getAll()
-      const data = response.data || response
-      const conditions = Array.isArray(data) ? data : []
-
+      const conditions = await trolleyConditionService.getAll()
       // Sort alphabetically by name
       const sortedConditions = conditions.sort((a, b) =>
         a.name.localeCompare(b.name)
       )
-
       setTrolleyConditions(sortedConditions)
     } catch {
       showAlert('Failed to load trolley conditions', 'error')

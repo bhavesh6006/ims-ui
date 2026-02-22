@@ -6,6 +6,7 @@ export interface Antenna {
   antenna_no: number
   antenna_name?: string
   location_name?: string
+  store_location_id?: string
   zone_id?: number
   antenna_type?: string
   polarization?: string
@@ -34,6 +35,7 @@ export interface AntennaCreatePayload {
   antenna_no: number
   antenna_name?: string
   location_name?: string
+  store_location_id?: string
   zone_id?: number
   antenna_type?: string
   polarization?: string
@@ -49,6 +51,7 @@ export interface AntennaUpdatePayload {
   antenna_no?: number
   antenna_name?: string
   location_name?: string
+  store_location_id?: string
   zone_id?: number
   antenna_type?: string
   polarization?: string
