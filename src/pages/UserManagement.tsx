@@ -13,6 +13,7 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
+  FormHelperText,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
@@ -36,6 +37,13 @@ const UserManagement: React.FC = () => {
     message: '',
     severity: 'success' as 'success' | 'error',
   })
+
+  interface FormErrors {
+    username?: string
+    role?: string
+  }
+
+  const [errors, setErrors] = useState<FormErrors>({})
 
   const [userForm, setUserForm] = useState({
     username: '',
@@ -140,8 +148,26 @@ const UserManagement: React.FC = () => {
     }
   }
 
+  const validate = (): boolean => {
+    const newErrors: FormErrors = {}
+
+    if (!userForm.username?.trim()) {
+      newErrors.username = 'Username is required'
+    }
+
+    if (!userForm.role) {
+      newErrors.role = 'Role is required'
+    }
+
+    setErrors(newErrors)
+
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async () => {
     try {
+      if (!validate()) return
+
       if (!userForm.username) {
         showAlert('Username is required', 'error')
         return
@@ -228,11 +254,14 @@ const UserManagement: React.FC = () => {
             <TextField
               label="Username"
               value={userForm.username}
-              onChange={(e) =>
+              onChange={(e) => {
                 setUserForm({ ...userForm, username: e.target.value })
-              }
+                setErrors({ ...errors, username: undefined })
+              }}
               fullWidth
               required
+              error={Boolean(errors.username)}
+              helperText={errors.username}
             />
             <TextField
               label="Email"
@@ -243,11 +272,11 @@ const UserManagement: React.FC = () => {
               }
               fullWidth
             />
-            <FormControl fullWidth required>
+            <FormControl fullWidth required error={Boolean(errors.role)}>
               <InputLabel>Role</InputLabel>
               <Select
                 value={userForm.role}
-                onChange={(e) =>
+                onChange={(e) => {
                   setUserForm({
                     ...userForm,
                     role: e.target.value as
@@ -255,13 +284,15 @@ const UserManagement: React.FC = () => {
                       | 'Store Manager'
                       | 'Operator',
                   })
-                }
+                  setErrors({ ...errors, role: undefined })
+                }}
                 label="Role"
               >
                 <MenuItem value="Admin">Admin</MenuItem>
                 <MenuItem value="Store Manager">Store Manager</MenuItem>
                 <MenuItem value="Operator">Operator</MenuItem>
               </Select>
+              <FormHelperText>{errors.role}</FormHelperText>
             </FormControl>
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>

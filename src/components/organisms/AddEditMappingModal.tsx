@@ -20,6 +20,7 @@ import {
   TableHead,
   TableRow,
   TextField,
+  FormHelperText,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
@@ -155,10 +156,7 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
 
   const handleSubmit = async () => {
     // Validation
-    if (!selectedTrolleyTypeId) {
-      alert('Please select a trolley type')
-      return
-    }
+    if (!selectedTrolleyTypeId) return
 
     if (materialRows.length === 0) {
       alert('Please add at least one material')
@@ -238,7 +236,11 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
       <DialogContent dividers>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {/* Trolley Type Selection */}
-          <FormControl fullWidth>
+          <FormControl
+            fullWidth
+            required
+            error={Boolean(selectedTrolleyTypeId === '')}
+          >
             <InputLabel>Trolley Type</InputLabel>
             <Select
               value={selectedTrolleyTypeId}
@@ -255,6 +257,9 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
                 </MenuItem>
               ))}
             </Select>
+            <FormHelperText>
+              {selectedTrolleyTypeId === '' ? 'Trolley Type is required' : ''}
+            </FormHelperText>
           </FormControl>
 
           {/* Materials Table */}

@@ -123,6 +123,13 @@ const DeviceMaster: React.FC = () => {
     setAlert({ open: true, message, severity })
   }
 
+  interface FormErrors {
+    device_name?: string
+    ip_address?: string
+  }
+
+  const [errors, setErrors] = useState<FormErrors>({})
+
   const loadDevices = useCallback(async () => {
     setLoading(true)
     try {
@@ -205,13 +212,25 @@ const DeviceMaster: React.FC = () => {
     }
   }
 
+  const validate = (): boolean => {
+    const newErrors: FormErrors = {}
+
+    if (!formData.device_name?.trim()) {
+      newErrors.device_name = 'Device Name is required'
+    }
+
+    if (!formData.ip_address?.trim()) {
+      newErrors.ip_address = 'IP Address is required'
+    }
+
+    setErrors(newErrors)
+
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async () => {
     try {
-      // Validate required fields
-      if (!formData.device_name || !formData.ip_address) {
-        showAlert('Device name and IP address are required', 'error')
-        return
-      }
+      if (!validate()) return
 
       if (editingDevice) {
         // Update existing device
@@ -316,21 +335,27 @@ const DeviceMaster: React.FC = () => {
                 fullWidth
                 required
                 value={formData.device_name}
-                onChange={(e) =>
+                onChange={(e) => {
                   handleInputChange('device_name', e.target.value)
-                }
+                  setErrors({ ...errors, device_name: undefined })
+                }}
                 placeholder="e.g., FX9600-WH-A"
+                error={Boolean(errors.device_name)}
+                helperText={errors.device_name}
               />
               <TextField
                 label="IP Address"
                 fullWidth
                 required
                 value={formData.ip_address}
-                onChange={(e) =>
+                onChange={(e) => {
                   handleInputChange('ip_address', e.target.value)
-                }
+                  setErrors({ ...errors, ip_address: undefined })
+                }}
                 placeholder="e.g., 192.168.1.100"
                 disabled={!!editingDevice} // Disable IP change in edit mode
+                error={Boolean(errors.ip_address)}
+                helperText={errors.ip_address}
               />
             </Box>
             <Box sx={{ display: 'flex', gap: 2 }}>

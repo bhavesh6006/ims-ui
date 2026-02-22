@@ -13,8 +13,8 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
+  FormHelperText,
 } from '@mui/material'
-import type { SelectChangeEvent } from '@mui/material/Select'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
 import { DataTable, type Column } from '../components/organisms'
@@ -85,6 +85,15 @@ const MaterialMaster: React.FC = () => {
     status: 'ACTIVE' as string,
   })
 
+  interface FormErrors {
+    material_code?: string
+    material_name?: string
+    material_type_id?: string
+    subtool_id?: string
+  }
+
+  const [errors, setErrors] = useState<FormErrors>({})
+
   const columns: Column[] = [
     { id: 'material_code', label: 'Material Code' },
     { id: 'material_name', label: 'Name' },
@@ -107,7 +116,7 @@ const MaterialMaster: React.FC = () => {
     {
       id: 'length_mm',
       label: 'Dimensions',
-      format: (value: unknown, row?: unknown) => {
+      format: (_value: unknown, row?: unknown) => {
         const material = row as Material
         if (
           material &&
@@ -146,27 +155,62 @@ const MaterialMaster: React.FC = () => {
       const data = response.data || response
       const totalCount = response.count || data.length
 
-      const mappedMaterials = (Array.isArray(data) ? data : []).map((item) => {
-        return {
-          material_id: item.material_id,
-          material_code: item.material_code,
-          material_name: item.material_name,
-          material_type_id: item.material_type_id,
-          materialType: item.materialType,
-          subtool_id: item.subtool_id || '',
-          subtool: item.subtool,
-          subtoolName: item.subtool?.name || '',
-          length_mm: parseFloat(String(item?.length_mm ?? 0)).toFixed(2),
-          width_mm: parseFloat(String(item?.width_mm ?? 0)).toFixed(2),
-          height_mm: parseFloat(String(item?.height_mm ?? 0)).toFixed(2),
-          dimension_unit: item.dimension_unit || 'mm',
-          weight_kg: parseFloat(String(item?.weight_kg ?? 0)).toFixed(3),
-          weight_unit: item.weight_unit || 'kg',
-          status: item.status,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
+      const mappedMaterials: Material[] = (Array.isArray(data) ? data : []).map(
+        (item) => {
+          // Handle materialType
+          const materialTypeObj: { material_type: string } = {
+            material_type: '',
+          }
+          if (
+            item.materialType &&
+            typeof item.materialType === 'object' &&
+            'material_type' in item.materialType
+          ) {
+            materialTypeObj.material_type = String(
+              (item.materialType as { material_type: string }).material_type ??
+                ''
+            )
+          } else if ('material_type' in item) {
+            materialTypeObj.material_type = String(item.material_type ?? '')
+          }
+
+          // Handle subtool
+          let subtoolObj: { subtool_id: string; name: string } | undefined =
+            undefined
+          if (
+            item.subtool &&
+            typeof item.subtool === 'object' &&
+            'subtool_id' in item.subtool &&
+            'name' in item.subtool
+          ) {
+            const s = item.subtool as { subtool_id: string; name: string }
+            subtoolObj = {
+              subtool_id: String(s.subtool_id ?? ''),
+              name: String(s.name ?? ''),
+            }
+          }
+
+          return {
+            material_id: String(item.material_id ?? ''),
+            material_code: String(item.material_code ?? ''),
+            material_name: String(item.material_name ?? ''),
+            material_type_id: String(item.material_type_id ?? ''),
+            materialType: materialTypeObj,
+            subtool_id: String(item.subtool_id ?? ''),
+            subtool: subtoolObj,
+            subtoolName: subtoolObj ? subtoolObj.name : '',
+            length_mm: parseFloat(String(item?.length_mm ?? 0)).toFixed(2),
+            width_mm: parseFloat(String(item?.width_mm ?? 0)).toFixed(2),
+            height_mm: parseFloat(String(item?.height_mm ?? 0)).toFixed(2),
+            dimension_unit: String(item.dimension_unit ?? 'mm'),
+            weight_kg: parseFloat(String(item?.weight_kg ?? 0)).toFixed(3),
+            weight_unit: String(item.weight_unit ?? 'kg'),
+            status: String(item.status ?? ''),
+            created_at: String(item.created_at ?? ''),
+            updated_at: String(item.updated_at ?? ''),
+          }
         }
-      })
+      )
 
       setMaterials(mappedMaterials)
       setTotal(totalCount)
@@ -179,41 +223,39 @@ const MaterialMaster: React.FC = () => {
 
   const loadMaterialTypes = useCallback(async () => {
     try {
-      const response = await materialTypeService.getAll()
-
-      // Handle different response structures
-      const data = response.data || response
-      const types = Array.isArray(data) ? data : []
-
-      // Sort alphabetically by material_type
+      let types = await materialTypeService.getAll()
+      // Handle wrapped response (e.g., { data: [...] })
+      if (!Array.isArray(types) && types && Array.isArray(types.data)) {
+        types = types.data
+      }
       const sortedTypes = types.sort((a, b) =>
         a.material_type.localeCompare(b.material_type)
       )
-
       setMaterialTypes(sortedTypes)
     } catch {
       showAlert('Failed to load material types', 'error')
-      setMaterialTypes([]) // Ensure it's always an array even on error
+      setMaterialTypes([])
     }
   }, [])
 
   const loadSubtools = useCallback(async () => {
     try {
-      const response = await subtoolService.getAll()
-
-      // Handle different response structures
-      const data = response.data || response
-      const subtoolList = Array.isArray(data) ? data : []
-
-      // Sort alphabetically by name
+      let subtoolList = await subtoolService.getAll()
+      // Handle wrapped response (e.g., { data: [...] })
+      if (
+        !Array.isArray(subtoolList) &&
+        subtoolList &&
+        Array.isArray(subtoolList.data)
+      ) {
+        subtoolList = subtoolList.data
+      }
       const sortedSubtools = subtoolList.sort((a, b) =>
         a.name.localeCompare(b.name)
       )
-
       setSubtools(sortedSubtools)
     } catch {
       showAlert('Failed to load subtools', 'error')
-      setSubtools([]) // Ensure it's always an array even on error
+      setSubtools([])
     }
   }, [])
 
@@ -275,7 +317,33 @@ const MaterialMaster: React.FC = () => {
     }
   }
 
+  const validate = (): boolean => {
+    const newErrors: FormErrors = {}
+
+    if (!formData.materialCode?.trim()) {
+      newErrors.material_code = 'Material Code is required'
+    }
+
+    if (!formData.materialName?.trim()) {
+      newErrors.material_name = 'Material Name is required'
+    }
+
+    if (!formData.materialTypeId) {
+      newErrors.material_type_id = 'Material Type is required'
+    }
+
+    if (!formData.subtoolId) {
+      newErrors.subtool_id = 'Subtool is required'
+    }
+
+    setErrors(newErrors)
+
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async () => {
+    if (!validate()) return
+
     // Validate required fields
     if (!formData.materialCode.trim()) {
       showAlert('Material Code is required', 'error')
@@ -317,13 +385,6 @@ const MaterialMaster: React.FC = () => {
     } catch {
       showAlert('Operation failed', 'error')
     }
-  }
-
-  const handlePositionChange = (event: SelectChangeEvent<string>) => {
-    setFormData({
-      ...formData,
-      subtoolId: event.target.value as string,
-    })
   }
 
   return (
@@ -376,32 +437,43 @@ const MaterialMaster: React.FC = () => {
             <TextField
               label="Material Code"
               value={formData.materialCode}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, materialCode: e.target.value })
-              }
+                setErrors({ ...errors, material_code: undefined })
+              }}
               required
               fullWidth
+              error={Boolean(errors.material_code)}
+              helperText={errors.material_code}
             />
             <TextField
               label="Material Name"
               value={formData.materialName}
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({ ...formData, materialName: e.target.value })
-              }
+                setErrors({ ...errors, material_name: undefined })
+              }}
               required
               fullWidth
+              error={Boolean(errors.material_name)}
+              helperText={errors.material_name}
             />
-            <FormControl fullWidth required>
+            <FormControl
+              fullWidth
+              required
+              error={Boolean(errors.material_type_id)}
+            >
               <InputLabel>Material Type</InputLabel>
               <Select
                 value={formData.materialTypeId}
                 label="Material Type"
-                onChange={(e) =>
+                onChange={(e) => {
                   setFormData({
                     ...formData,
                     materialTypeId: e.target.value as string,
                   })
-                }
+                  setErrors({ ...errors, material_type_id: undefined })
+                }}
               >
                 {materialTypes.map((type) => (
                   <MenuItem
@@ -412,12 +484,19 @@ const MaterialMaster: React.FC = () => {
                   </MenuItem>
                 ))}
               </Select>
+              <FormHelperText>{errors.material_type_id}</FormHelperText>
             </FormControl>
-            <FormControl fullWidth>
+            <FormControl fullWidth required error={Boolean(errors.subtool_id)}>
               <InputLabel>Subtool</InputLabel>
               <Select
                 value={formData.subtoolId}
-                onChange={handlePositionChange}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    subtoolId: e.target.value as string,
+                  })
+                  setErrors({ ...errors, subtool_id: undefined })
+                }}
                 label="Subtool"
               >
                 <MenuItem value="">None</MenuItem>
@@ -427,6 +506,7 @@ const MaterialMaster: React.FC = () => {
                   </MenuItem>
                 ))}
               </Select>
+              <FormHelperText>{errors.subtool_id}</FormHelperText>
             </FormControl>
             <TextField
               label="Length"
