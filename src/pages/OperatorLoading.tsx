@@ -249,7 +249,6 @@ const OperatorLoading: React.FC = () => {
       } finally {
         setScanning(false)
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
     [selectedOperatorWO]
   )
@@ -407,6 +406,8 @@ const OperatorLoading: React.FC = () => {
       await materialStockService.createStock(materialStockPayload)
       await trollyService.update(scannedTrolley.trolley_id, {
         is_occupied: true,
+        trolley_code: scannedTrolley.trolley_code,
+        qr_code: scannedTrolley.qr_code,
       })
 
       const updatePayload = {
