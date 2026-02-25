@@ -52,10 +52,154 @@ const PageLoader = () => (
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
+      main: '#A50034',
+      light: '#c9144f',
+      dark: '#8a002b',
+      contrastText: '#ffffff',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#A50034',
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        contained: {
+          backgroundColor: '#A50034',
+          color: '#ffffff',
+          '&:hover': {
+            backgroundColor: '#8a002b',
+          },
+        },
+        outlined: {
+          borderColor: '#A50034',
+          color: '#A50034',
+          '&:hover': {
+            borderColor: '#8a002b',
+            backgroundColor: 'rgba(165, 0, 52, 0.04)',
+          },
+        },
+        text: {
+          color: '#A50034',
+          '&:hover': {
+            backgroundColor: 'rgba(165, 0, 52, 0.04)',
+          },
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        colorPrimary: {
+          backgroundColor: '#A50034',
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        colorPrimary: {
+          backgroundColor: '#A50034',
+          color: '#ffffff',
+        },
+      },
+    },
+    MuiCircularProgress: {
+      styleOverrides: {
+        colorPrimary: {
+          color: '#A50034',
+        },
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          '&.Mui-selected': {
+            backgroundColor: 'rgba(165, 0, 52, 0.08)',
+            borderRight: '3px solid #A50034',
+            '& .MuiListItemIcon-root': {
+              color: '#A50034',
+            },
+            '& .MuiListItemText-primary': {
+              color: '#A50034',
+              fontWeight: 600,
+            },
+            '&:hover': {
+              backgroundColor: 'rgba(165, 0, 52, 0.12)',
+            },
+          },
+          '&:hover': {
+            backgroundColor: 'rgba(165, 0, 52, 0.04)',
+          },
+        },
+      },
+    },
+    MuiFab: {
+      styleOverrides: {
+        primary: {
+          backgroundColor: '#A50034',
+          '&:hover': {
+            backgroundColor: '#8a002b',
+          },
+        },
+      },
+    },
+    MuiCheckbox: {
+      styleOverrides: {
+        root: {
+          '&.Mui-checked': {
+            color: '#A50034',
+          },
+        },
+      },
+    },
+    MuiRadio: {
+      styleOverrides: {
+        root: {
+          '&.Mui-checked': {
+            color: '#A50034',
+          },
+        },
+      },
+    },
+    MuiSwitch: {
+      styleOverrides: {
+        switchBase: {
+          '&.Mui-checked': {
+            color: '#A50034',
+            '& + .MuiSwitch-track': {
+              backgroundColor: '#A50034',
+            },
+          },
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
+            {
+              borderColor: '#A50034',
+            },
+          '& .MuiInputLabel-root.Mui-focused': {
+            color: '#A50034',
+          },
+        },
+      },
+    },
+    MuiTabs: {
+      styleOverrides: {
+        indicator: {
+          backgroundColor: '#A50034',
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          '&.Mui-selected': {
+            color: '#A50034',
+          },
+        },
+      },
     },
   },
   typography: {

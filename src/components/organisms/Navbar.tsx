@@ -59,10 +59,15 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, title = 'IMS' }) => {
           aria-label="open drawer"
           edge="start"
           onClick={onMenuClick}
-          sx={{ mr: 2 }}
         >
           <MenuIcon />
         </IconButton>
+        <Box
+          component="img"
+          src="/lg-logo.svg"
+          alt="LG Logo"
+          sx={{ width: 64, height: 32, mr: 1.5 }}
+        />
         <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
           {title}
         </Typography>
@@ -93,7 +98,7 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, title = 'IMS' }) => {
             onClick={handleMenu}
             color="inherit"
           >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: '#8a002b' }}>
               {user?.username?.charAt(0).toUpperCase()}
             </Avatar>
           </IconButton>
