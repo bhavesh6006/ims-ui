@@ -21,6 +21,7 @@ import { EditButton, ViewButton } from '../components/atoms'
 import type { TrolleyTypeMapping, MappingItem } from '../types/mapping'
 
 const TrollyMaterialMapping: React.FC = () => {
+  const [allMappings, setAllMappings] = useState<MappingItem[]>([])
   const [mappings, setMappings] = useState<TrolleyTypeMapping[]>([])
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
@@ -45,46 +46,62 @@ const TrollyMaterialMapping: React.FC = () => {
   const loadMappings = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await mappingService.getAll(page + 1, pageSize, search)
+      // Fetch all mappings with search filter, no pagination limit
+      const response = await mappingService.getAll(1, 10000, search)
 
-      // Group mappings by trolley type
+      // Store all mappings
       const mappingsArray = response.data as unknown as MappingItem[]
-
-      const groupedMappings = mappingsArray.reduce(
-        (acc: Record<string, TrolleyTypeMapping>, mapping: MappingItem) => {
-          const trolleyTypeId = mapping.trolleyType?.trolly_type_id || ''
-          const trolleyType = mapping.trolleyType?.trolly_type || ''
-
-          if (!acc[trolleyTypeId]) {
-            acc[trolleyTypeId] = {
-              trolley_type_id: trolleyTypeId,
-              trolley_type: trolleyType,
-              total_materials: 0,
-              mappings: [],
-            }
-          }
-
-          acc[trolleyTypeId].mappings.push(mapping)
-          acc[trolleyTypeId].total_materials =
-            acc[trolleyTypeId].mappings.length
-
-          return acc
-        },
-        {} as Record<string, TrolleyTypeMapping>
-      )
-
-      setMappings(Object.values(groupedMappings))
-      setTotal(Object.keys(groupedMappings).length)
+      setAllMappings(mappingsArray)
     } catch {
       showAlert('Failed to load mappings', 'error')
+      setAllMappings([])
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, search])
+  }, [search])
+
+  // Group mappings and apply client-side pagination
+  useEffect(() => {
+    // Group mappings by trolley type
+    const groupedMappings = allMappings.reduce(
+      (acc: Record<string, TrolleyTypeMapping>, mapping: MappingItem) => {
+        const trolleyTypeId = mapping.trolleyType?.trolly_type_id || ''
+        const trolleyType = mapping.trolleyType?.trolly_type || ''
+
+        if (!acc[trolleyTypeId]) {
+          acc[trolleyTypeId] = {
+            trolley_type_id: trolleyTypeId,
+            trolley_type: trolleyType,
+            total_materials: 0,
+            mappings: [],
+          }
+        }
+
+        acc[trolleyTypeId].mappings.push(mapping)
+        acc[trolleyTypeId].total_materials = acc[trolleyTypeId].mappings.length
+
+        return acc
+      },
+      {} as Record<string, TrolleyTypeMapping>
+    )
+
+    const allGrouped = Object.values(groupedMappings)
+    setTotal(allGrouped.length)
+
+    // Apply client-side pagination
+    const startIndex = page * pageSize
+    const endIndex = startIndex + pageSize
+    setMappings(allGrouped.slice(startIndex, endIndex))
+  }, [allMappings, page, pageSize])
 
   useEffect(() => {
     loadMappings()
   }, [loadMappings])
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPage(0)
+  }, [search])
 
   const handleAdd = () => {
     setSelectedMapping(null)

@@ -35,8 +35,10 @@ import type { Device } from '../services/deviceService'
 const RFIDAntennaMaster: React.FC = () => {
   const [storeLocations, setStoreLocations] = useState<StoreLocation[]>([])
   const [antennas, setAntennas] = useState<Antenna[]>([])
-  const [filteredAntennas, setFilteredAntennas] = useState<Antenna[]>([])
   const [devices, setDevices] = useState<Device[]>([])
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(10)
+  const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -167,41 +169,24 @@ const RFIDAntennaMaster: React.FC = () => {
   const loadAntennas = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await antennaService.getAll()
+      const response = await antennaService.getAll(page + 1, pageSize, search)
       const antennasData = response.data || []
+      const totalCount = response.count || antennasData.length
       setAntennas(antennasData)
-      setFilteredAntennas(antennasData)
+      setTotal(totalCount)
     } catch (error) {
       console.error('Error loading antennas:', error)
       showAlert('Failed to load antennas', 'error')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, pageSize, search])
 
   useEffect(() => {
     loadDevices()
     loadAntennas()
     loadStoreLocations()
   }, [loadDevices, loadAntennas])
-
-  useEffect(() => {
-    if (search.trim() === '') {
-      setFilteredAntennas(antennas)
-    } else {
-      const searchLower = search.toLowerCase()
-      const filtered = antennas.filter(
-        (antenna) =>
-          antenna.antenna_name?.toLowerCase().includes(searchLower) ||
-          antenna.location_name?.toLowerCase().includes(searchLower) ||
-          antenna.antenna_type?.toLowerCase().includes(searchLower) ||
-          antenna.orientation?.toLowerCase().includes(searchLower) ||
-          antenna.device?.device_name?.toLowerCase().includes(searchLower) ||
-          antenna.antenna_no?.toString().includes(searchLower)
-      )
-      setFilteredAntennas(filtered)
-    }
-  }, [search, antennas])
 
   const handleAdd = () => {
     setEditingAntenna(null)
@@ -380,12 +365,15 @@ const RFIDAntennaMaster: React.FC = () => {
 
       <DataTable
         columns={columns}
-        data={filteredAntennas as unknown as Record<string, unknown>[]}
-        page={0}
-        rowsPerPage={10}
-        totalRows={filteredAntennas.length}
-        onPageChange={() => {}}
-        onRowsPerPageChange={() => {}}
+        data={antennas as unknown as Record<string, unknown>[]}
+        page={page}
+        rowsPerPage={pageSize}
+        totalRows={total}
+        onPageChange={(newPage) => setPage(newPage)}
+        onRowsPerPageChange={(newPageSize) => {
+          setPageSize(newPageSize)
+          setPage(0)
+        }}
         onEdit={handleEdit}
         onDelete={handleDelete}
         loading={loading}

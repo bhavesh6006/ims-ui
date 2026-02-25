@@ -27,8 +27,13 @@ export interface StoreLocationUpdatePayload extends Partial<StoreLocationPayload
 }
 
 export const storeLocationService = {
-  async getAll() {
-    const response = await api.get('/store-locations')
+  async getAll(page?: number, limit?: number, search?: string) {
+    const params: Record<string, string | number> = {}
+    if (page) params.page = page
+    if (limit) params.limit = limit
+    if (search) params.search = search
+
+    const response = await api.get('/store-locations', { params })
     return response.data
   },
 

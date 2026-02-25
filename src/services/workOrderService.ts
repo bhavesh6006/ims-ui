@@ -33,6 +33,7 @@ export interface WorkOrderListResponse {
 }
 
 export interface WorkOrderFilters {
+  work_order_number?: string
   status?: string
   date_from?: string
   date_to?: string
@@ -65,6 +66,8 @@ const workOrderService = {
   ): Promise<ApiResponse<WorkOrderListResponse>> => {
     const params = new URLSearchParams()
 
+    if (filters?.work_order_number)
+      params.append('work_order_number', filters.work_order_number)
     if (filters?.status) params.append('status', filters.status)
     if (filters?.date_from) params.append('date_from', filters.date_from)
     if (filters?.date_to) params.append('date_to', filters.date_to)

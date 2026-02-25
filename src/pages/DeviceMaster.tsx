@@ -29,7 +29,9 @@ import type {
 
 const DeviceMaster: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([])
-  const [filteredDevices, setFilteredDevices] = useState<Device[]>([])
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(10)
+  const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -133,39 +135,22 @@ const DeviceMaster: React.FC = () => {
   const loadDevices = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await deviceService.getAll()
+      const response = await deviceService.getAll(page + 1, pageSize, search)
       const devicesData = response.data || []
+      const totalCount = response.count || devicesData.length
       setDevices(devicesData)
-      setFilteredDevices(devicesData)
+      setTotal(totalCount)
     } catch (error) {
       console.error('Error loading devices:', error)
       showAlert('Failed to load devices', 'error')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, pageSize, search])
 
   useEffect(() => {
     loadDevices()
   }, [loadDevices])
-
-  useEffect(() => {
-    if (search.trim() === '') {
-      setFilteredDevices(devices)
-    } else {
-      const searchLower = search.toLowerCase()
-      const filtered = devices.filter(
-        (device) =>
-          device.device_name?.toLowerCase().includes(searchLower) ||
-          device.ip_address?.toLowerCase().includes(searchLower) ||
-          device.location?.toLowerCase().includes(searchLower) ||
-          device.department?.toLowerCase().includes(searchLower) ||
-          device.serial_no?.toLowerCase().includes(searchLower) ||
-          device.status?.toLowerCase().includes(searchLower)
-      )
-      setFilteredDevices(filtered)
-    }
-  }, [search, devices])
 
   const handleAdd = () => {
     setEditingDevice(null)
@@ -294,12 +279,15 @@ const DeviceMaster: React.FC = () => {
 
       <DataTable
         columns={columns}
-        data={filteredDevices as unknown as Record<string, unknown>[]}
-        page={0}
-        rowsPerPage={10}
-        totalRows={filteredDevices.length}
-        onPageChange={() => {}}
-        onRowsPerPageChange={() => {}}
+        data={devices as unknown as Record<string, unknown>[]}
+        page={page}
+        rowsPerPage={pageSize}
+        totalRows={total}
+        onPageChange={(newPage) => setPage(newPage)}
+        onRowsPerPageChange={(newPageSize) => {
+          setPageSize(newPageSize)
+          setPage(0)
+        }}
         onEdit={handleEdit}
         onDelete={handleDelete}
         loading={loading}

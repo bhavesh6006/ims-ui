@@ -72,8 +72,13 @@ export interface AntennaResponse {
 }
 
 export const antennaService = {
-  getAll: async () => {
-    const response = await api.get<AntennaResponse>('/antennas')
+  getAll: async (page?: number, limit?: number, search?: string) => {
+    const params: Record<string, string | number> = {}
+    if (page) params.page = page
+    if (limit) params.limit = limit
+    if (search) params.search = search
+
+    const response = await api.get<AntennaResponse>('/antennas', { params })
     return response.data
   },
 

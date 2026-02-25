@@ -26,10 +26,10 @@ import type { LocationType } from '../types/locationType'
 
 const StoreLocationMaster: React.FC = () => {
   const [locations, setLocations] = useState<StoreLocation[]>([])
-  const [filteredLocations, setFilteredLocations] = useState<StoreLocation[]>(
-    []
-  )
   const [locationTypes, setLocationTypes] = useState<LocationType[]>([])
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(10)
+  const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -106,43 +106,32 @@ const StoreLocationMaster: React.FC = () => {
   const loadLocations = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await storeLocationService.getAll()
+      const response = await storeLocationService.getAll(
+        page + 1,
+        pageSize,
+        search
+      )
 
       // Handle response based on the actual structure
-      const locationData = response.data?.data || response.data || []
+      const locationData = response.data || []
+      const totalCount = response.count || locationData.length
 
       setLocations(locationData)
-      setFilteredLocations(locationData)
+      setTotal(totalCount)
     } catch (error) {
       console.error('Error loading locations:', error)
       showAlert('Failed to load locations', 'error')
       setLocations([])
-      setFilteredLocations([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, pageSize, search])
 
   useEffect(() => {
     loadLocations()
     loadLocationTypes()
   }, [loadLocations, loadLocationTypes])
-
-  useEffect(() => {
-    if (!search.trim()) {
-      setFilteredLocations(locations)
-    } else {
-      const searchLower = search.toLowerCase()
-      const filtered = locations.filter(
-        (loc) =>
-          loc.store_code?.toLowerCase().includes(searchLower) ||
-          loc.store_name?.toLowerCase().includes(searchLower) ||
-          loc.factory_name?.toLowerCase().includes(searchLower) ||
-          loc.plant_name?.toLowerCase().includes(searchLower)
-      )
-      setFilteredLocations(filtered)
-    }
-  }, [search, locations])
 
   // Add helper functions to map area units
   const mapApiAreaUnitToForm = (apiUnit: string): 'sq_mtr' | 'sq_ft' => {
@@ -317,12 +306,15 @@ const StoreLocationMaster: React.FC = () => {
 
       <DataTable
         columns={columns}
-        data={(filteredLocations || []) as unknown as Record<string, unknown>[]}
-        page={0}
-        rowsPerPage={10}
-        totalRows={(filteredLocations || []).length}
-        onPageChange={() => {}}
-        onRowsPerPageChange={() => {}}
+        data={(locations || []) as unknown as Record<string, unknown>[]}
+        page={page}
+        rowsPerPage={pageSize}
+        totalRows={total}
+        onPageChange={(newPage) => setPage(newPage)}
+        onRowsPerPageChange={(newPageSize) => {
+          setPageSize(newPageSize)
+          setPage(0)
+        }}
         onEdit={handleEdit}
         onDelete={handleDelete}
         loading={loading}

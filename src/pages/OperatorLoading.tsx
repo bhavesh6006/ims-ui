@@ -25,6 +25,7 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
+  TablePagination,
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import CancelIcon from '@mui/icons-material/Cancel'
@@ -44,7 +45,10 @@ import {
 import { Alert } from '../components/molecules'
 import { ActionButton } from '../components/atoms'
 import type { Trolly } from '../types'
-import type { WorkOrderResponse } from '../services/workOrderService'
+import type {
+  WorkOrderResponse,
+  WorkOrderListResponse,
+} from '../services/workOrderService'
 import type { MaterialTrolleyMapping } from '../services/mappingService'
 
 interface MaterialStockEntry {
@@ -68,6 +72,9 @@ const OperatorLoading: React.FC = () => {
   const [operatorWorkOrders, setOperatorWorkOrders] = useState<
     WorkOrderResponse[]
   >([])
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
+  const [total, setTotal] = useState(0)
   const [selectedOperatorWO, setSelectedOperatorWO] =
     useState<WorkOrderResponse | null>(null)
   const [trolleyQRCode, settrolleyQRCode] = useState('')
@@ -105,12 +112,20 @@ const OperatorLoading: React.FC = () => {
     setAlert({ open: true, message, severity })
   }
 
-  const fetchWorkOrders = async (filters?: Record<string, unknown>) => {
+  const fetchWorkOrders = async () => {
     try {
       setLoading(true)
+
+      // Fetch all records for client-side filtering
+      const filters: Record<string, unknown> = {
+        page: 1,
+        limit: 10000, // Fetch all records
+      }
+
       const response = await workOrderService.getAll(filters)
       if (response.success && response.data) {
-        setOperatorWorkOrders(response.data.workOrders)
+        const workOrderData = response.data as WorkOrderListResponse
+        setOperatorWorkOrders(workOrderData.workOrders)
       }
     } catch (error) {
       showAlert('Failed to load work orders', 'error')
@@ -124,6 +139,58 @@ const OperatorLoading: React.FC = () => {
     fetchWorkOrders()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Reset to first page when tab or search changes
+  useEffect(() => {
+    setPage(0)
+  }, [activeTab, searchQuery])
+
+  const getFilteredWorkOrders = () => {
+    let filtered = operatorWorkOrders
+
+    // Apply tab-based filtering
+    if (activeTab === 0) {
+      filtered = filtered.filter(
+        (wo) =>
+          (wo.status === 'PENDING' || wo.status === 'IN_PROGRESS') &&
+          wo.output_plan < wo.input_plan
+      )
+    } else {
+      filtered = filtered.filter(
+        (wo) =>
+          wo.status === 'COMPLETED' ||
+          wo.status === 'CLOSED' ||
+          wo.output_plan >= wo.input_plan
+      )
+    }
+
+    // Apply client-side search across multiple fields
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase()
+      filtered = filtered.filter((wo) => {
+        // Search by work order number
+        const matchesWorkOrder = wo.work_order_number
+          .toLowerCase()
+          .includes(query)
+
+        // Search by material code (sub_tool)
+        const matchesMaterialCode = wo.sub_tool.toLowerCase().includes(query)
+
+        // Search by date (format: YYYY-MM-DD)
+        const matchesDate = wo.date.includes(query)
+
+        return matchesWorkOrder || matchesMaterialCode || matchesDate
+      })
+    }
+
+    return filtered
+  }
+
+  // Calculate pagination for filtered results
+  useEffect(() => {
+    const filtered = getFilteredWorkOrders()
+    setTotal(filtered.length)
+  }, [operatorWorkOrders, activeTab])
 
   const handleSelectWorkOrder = (workOrder: WorkOrderResponse) => {
     setSelectedOperatorWO(workOrder)
@@ -322,37 +389,6 @@ const OperatorLoading: React.FC = () => {
     setMaterialStockEntries([])
   }
 
-  const getFilteredWorkOrders = () => {
-    let filtered = operatorWorkOrders
-
-    if (activeTab === 0) {
-      filtered = filtered.filter(
-        (wo) =>
-          (wo.status === 'PENDING' || wo.status === 'IN_PROGRESS') &&
-          wo.output_plan < wo.input_plan
-      )
-    } else {
-      filtered = filtered.filter(
-        (wo) =>
-          wo.status === 'COMPLETED' ||
-          wo.status === 'CLOSED' ||
-          wo.output_plan >= wo.input_plan
-      )
-    }
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(
-        (wo) =>
-          wo.date.toLowerCase().includes(query) ||
-          wo.sub_tool.toLowerCase().includes(query) ||
-          wo.work_order_number.toLowerCase().includes(query)
-      )
-    }
-
-    return filtered
-  }
-
   const handleSubmit = async () => {
     if (!scannedTrolley || !selectedOperatorWO) {
       showAlert('Please complete all required steps', 'error')
@@ -451,6 +487,11 @@ const OperatorLoading: React.FC = () => {
   const renderMainScreen = () => {
     const filteredOrders = getFilteredWorkOrders()
 
+    // Apply client-side pagination to filtered results
+    const startIndex = page * pageSize
+    const endIndex = startIndex + pageSize
+    const paginatedOrders = filteredOrders.slice(startIndex, endIndex)
+
     return (
       <Box>
         <TextField
@@ -534,7 +575,7 @@ const OperatorLoading: React.FC = () => {
                     </Typography>
                   </TableCell>
                 </TableRow>
-              ) : filteredOrders.length === 0 ? (
+              ) : paginatedOrders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={14} align="center">
                     <Typography variant="body2" color="text.secondary" py={3}>
@@ -543,7 +584,7 @@ const OperatorLoading: React.FC = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredOrders.map((wo) => (
+                paginatedOrders.map((wo) => (
                   <TableRow key={wo.id}>
                     <TableCell>{wo.work_order_number}</TableCell>
                     <TableCell>{wo.date}</TableCell>
@@ -606,6 +647,18 @@ const OperatorLoading: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination
+          component="div"
+          count={total}
+          page={page}
+          onPageChange={(_event, newPage) => setPage(newPage)}
+          rowsPerPage={pageSize}
+          onRowsPerPageChange={(event) => {
+            setPageSize(parseInt(event.target.value, 10))
+            setPage(0)
+          }}
+          rowsPerPageOptions={[10, 25, 50, 100]}
+        />
       </Box>
     )
   }
