@@ -32,9 +32,6 @@ import CancelIcon from '@mui/icons-material/Cancel'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import CloseIcon from '@mui/icons-material/Close'
 import RefreshIcon from '@mui/icons-material/Refresh'
-import CameraAltIcon from '@mui/icons-material/CameraAlt'
-import KeyboardIcon from '@mui/icons-material/Keyboard'
-import QRScanner from '../components/QRScanner'
 import {
   trollyService,
   mappingService,
@@ -102,7 +99,6 @@ const OperatorLoading: React.FC = () => {
     MaterialStockEntry[]
   >([])
   const [loadingEntries, setLoadingEntries] = useState(false)
-  const [useCameraScanner, setUseCameraScanner] = useState(true)
   const [syncing, setSyncing] = useState(false)
 
   const trolleyInputRef = useRef<HTMLInputElement>(null)
@@ -201,7 +197,6 @@ const OperatorLoading: React.FC = () => {
     setPartialQuantity(0)
     setMappedQuantity(0)
     setMappingData(null)
-    setUseCameraScanner(true)
     showAlert(`Work Order ${workOrder.work_order_number} selected`, 'success')
     // Auto-focus the trolley input after dialog opens
     setTimeout(() => {
@@ -218,7 +213,6 @@ const OperatorLoading: React.FC = () => {
     setPartialQuantity(0)
     setMappedQuantity(0)
     setMappingData(null)
-    setUseCameraScanner(true)
   }
 
   const fetchMaterialTrolleyMapping = async (
@@ -271,12 +265,14 @@ const OperatorLoading: React.FC = () => {
 
         if (!trolleyData) {
           showAlert('Trolley not found', 'error')
+          setTimeout(() => trolleyInputRef.current?.focus(), 100)
           setScanning(false)
           return
         }
 
         if (trolleyData.is_occupied) {
           showAlert('Trolley Already Occupied', 'error')
+          setTimeout(() => trolleyInputRef.current?.focus(), 100)
           setScanning(false)
           return
         }
@@ -313,6 +309,7 @@ const OperatorLoading: React.FC = () => {
       } catch (error) {
         showAlert('Failed to scan trolley', 'error')
         console.error('Trolley scan error:', error)
+        setTimeout(() => trolleyInputRef.current?.focus(), 100)
       } finally {
         setScanning(false)
       }
@@ -345,12 +342,6 @@ const OperatorLoading: React.FC = () => {
       }
       processTrolleyScan(trolleyQRCode)
     }
-  }
-
-  const handleCameraScan = (decodedText: string) => {
-    settrolleyQRCode(decodedText)
-    setUseCameraScanner(false)
-    processTrolleyScan(decodedText)
   }
 
   // Cleanup timeout on unmount
@@ -687,72 +678,42 @@ const OperatorLoading: React.FC = () => {
 
         {!scannedTrolley ? (
           <Box>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                mb: 1,
-              }}
-            >
-              <Typography variant="h6">Scan Trolley Barcode/QR Code</Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={
-                  useCameraScanner ? <KeyboardIcon /> : <CameraAltIcon />
-                }
-                onClick={() => setUseCameraScanner(!useCameraScanner)}
-              >
-                {useCameraScanner ? 'Manual Input' : 'Use Camera'}
-              </Button>
-            </Box>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              Scan Trolley Barcode/QR Code
+            </Typography>
 
-            {useCameraScanner ? (
-              <Box sx={{ mt: 2 }}>
-                <QRScanner
-                  onScan={handleCameraScan}
-                  onError={(err) => console.warn('Scanner error:', err)}
-                />
+            <TextField
+              inputRef={trolleyInputRef}
+              name="trolleyQRCode"
+              label="Trolley Barcode/QR Code"
+              value={trolleyQRCode}
+              onChange={handleTrolleyInputChange}
+              onKeyDown={handleTrolleyKeyDown}
+              fullWidth
+              autoFocus
+              placeholder="Scan or type trolley barcode/QR code"
+              disabled={scanning}
+              helperText={
+                scanning
+                  ? 'Processing...'
+                  : 'Place cursor here and scan with your barcode/QR scanner device, or type the code manually'
+              }
+              sx={{ mt: 2 }}
+            />
+            {scanning && (
+              <Box sx={{ mt: 2, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Scanning trolley...
+                </Typography>
               </Box>
-            ) : (
-              <>
-                <TextField
-                  inputRef={trolleyInputRef}
-                  name="trolleyQRCode"
-                  label="Trolley Barcode/QR Code"
-                  value={trolleyQRCode}
-                  onChange={handleTrolleyInputChange}
-                  onKeyDown={handleTrolleyKeyDown}
-                  fullWidth
-                  autoFocus
-                  placeholder="Scan or paste trolley barcode/QR code"
-                  disabled={scanning}
-                  helperText={
-                    scanning
-                      ? 'Processing...'
-                      : 'Place cursor here and scan, or paste/type the code'
-                  }
-                  sx={{ mt: 2 }}
-                />
-                {scanning && (
-                  <Box sx={{ mt: 2, textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Scanning trolley...
-                    </Typography>
-                  </Box>
-                )}
-                <Box
-                  sx={{ p: 2, mt: 2, bgcolor: 'info.lighter', borderRadius: 1 }}
-                >
-                  <Typography variant="caption" color="info.main">
-                    💡 Tip: The input is ready for scanning. Use your barcode/QR
-                    scanner device or paste the code — it will be processed
-                    automatically.
-                  </Typography>
-                </Box>
-              </>
             )}
+            <Box sx={{ p: 2, mt: 2, bgcolor: 'info.lighter', borderRadius: 1 }}>
+              <Typography variant="caption" color="info.main">
+                💡 Tip: The input is ready for scanning. Use your barcode/QR
+                scanner device or type the code manually — it will be processed
+                automatically.
+              </Typography>
+            </Box>
           </Box>
         ) : (
           <Box>
