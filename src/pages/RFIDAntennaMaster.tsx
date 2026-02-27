@@ -9,14 +9,9 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Chip,
   Stack,
   Autocomplete,
-  FormHelperText,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
@@ -471,32 +466,48 @@ const RFIDAntennaMaster: React.FC = () => {
                 error={Boolean(errors.antenna_name)}
                 helperText={errors.antenna_name}
               />
-              <FormControl
+              <Autocomplete
                 fullWidth
-                required
-                error={Boolean(errors.store_location_id)}
-              >
-                <InputLabel>Store Location</InputLabel>
-                <Select
-                  label="Store Location"
-                  value={formData.store_location_id}
-                  onChange={(e) => {
-                    handleInputChange('store_location_id', e.target.value)
-                    setErrors({ ...errors, store_location_id: undefined })
-                  }}
-                >
-                  <MenuItem value="">Select Store Location</MenuItem>
-                  {storeLocations.map((loc) => (
-                    <MenuItem
-                      key={loc.store_location_id}
-                      value={loc.store_location_id}
-                    >
-                      {loc.store_name || loc.store_code}
-                    </MenuItem>
-                  ))}
-                </Select>
-                <FormHelperText>{errors.store_location_id}</FormHelperText>
-              </FormControl>
+                options={[
+                  { store_location_id: '', label: 'Select Store Location' },
+                  ...storeLocations.map((loc) => ({
+                    store_location_id: loc.store_location_id,
+                    label: loc.store_name || loc.store_code,
+                  })),
+                ]}
+                getOptionLabel={(option) => option.label}
+                value={
+                  [
+                    { store_location_id: '', label: 'Select Store Location' },
+                    ...storeLocations.map((loc) => ({
+                      store_location_id: loc.store_location_id,
+                      label: loc.store_name || loc.store_code,
+                    })),
+                  ].find(
+                    (opt) =>
+                      opt.store_location_id === formData.store_location_id
+                  ) || null
+                }
+                onChange={(_, newValue) => {
+                  handleInputChange(
+                    'store_location_id',
+                    newValue?.store_location_id || ''
+                  )
+                  setErrors({ ...errors, store_location_id: undefined })
+                }}
+                isOptionEqualToValue={(option, value) =>
+                  option.store_location_id === value.store_location_id
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Store Location"
+                    required
+                    error={Boolean(errors.store_location_id)}
+                    helperText={errors.store_location_id}
+                  />
+                )}
+              />
             </Box>
 
             <Box sx={{ display: 'flex', gap: 2 }}>
@@ -508,41 +519,64 @@ const RFIDAntennaMaster: React.FC = () => {
                 onChange={(e) => handleInputChange('zone_id', e.target.value)}
                 placeholder="Logical zone mapping"
               />
-              <FormControl fullWidth>
-                <InputLabel>Antenna Type</InputLabel>
-                <Select
-                  value={formData.antenna_type}
-                  onChange={(e) =>
-                    handleInputChange('antenna_type', e.target.value)
-                  }
-                  label="Antenna Type"
-                >
-                  <MenuItem value="">None</MenuItem>
-                  <MenuItem value="Circular">Circular</MenuItem>
-                  <MenuItem value="Linear">Linear</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                fullWidth
+                options={[
+                  { label: 'None', value: '' },
+                  { label: 'Circular', value: 'Circular' },
+                  { label: 'Linear', value: 'Linear' },
+                ]}
+                value={
+                  [
+                    { label: 'None', value: '' },
+                    { label: 'Circular', value: 'Circular' },
+                    { label: 'Linear', value: 'Linear' },
+                  ].find((opt) => opt.value === formData.antenna_type) || null
+                }
+                onChange={(_, newValue) =>
+                  handleInputChange('antenna_type', newValue?.value || '')
+                }
+                getOptionLabel={(option) => option.label}
+                isOptionEqualToValue={(option, value) =>
+                  option.value === value.value
+                }
+                renderInput={(params) => (
+                  <TextField {...params} label="Antenna Type" />
+                )}
+              />
             </Box>
 
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 2 }}>
               Hardware Details
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <FormControl fullWidth>
-                <InputLabel>Polarization</InputLabel>
-                <Select
-                  value={formData.polarization}
-                  onChange={(e) =>
-                    handleInputChange('polarization', e.target.value)
-                  }
-                  label="Polarization"
-                >
-                  <MenuItem value="">None</MenuItem>
-                  <MenuItem value="LHCP">LHCP</MenuItem>
-                  <MenuItem value="RHCP">RHCP</MenuItem>
-                  <MenuItem value="Linear">Linear</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                fullWidth
+                options={[
+                  { label: 'None', value: '' },
+                  { label: 'LHCP', value: 'LHCP' },
+                  { label: 'RHCP', value: 'RHCP' },
+                  { label: 'Linear', value: 'Linear' },
+                ]}
+                value={
+                  [
+                    { label: 'None', value: '' },
+                    { label: 'LHCP', value: 'LHCP' },
+                    { label: 'RHCP', value: 'RHCP' },
+                    { label: 'Linear', value: 'Linear' },
+                  ].find((opt) => opt.value === formData.polarization) || null
+                }
+                onChange={(_, newValue) =>
+                  handleInputChange('polarization', newValue?.value || '')
+                }
+                getOptionLabel={(option) => option.label}
+                isOptionEqualToValue={(option, value) =>
+                  option.value === value.value
+                }
+                renderInput={(params) => (
+                  <TextField {...params} label="Polarization" />
+                )}
+              />
               <TextField
                 label="Manufacturer"
                 fullWidth
@@ -562,22 +596,35 @@ const RFIDAntennaMaster: React.FC = () => {
                 onChange={(e) => handleInputChange('model', e.target.value)}
                 placeholder="Hardware model"
               />
-              <FormControl fullWidth>
-                <InputLabel>Orientation</InputLabel>
-                <Select
-                  value={formData.orientation}
-                  onChange={(e) =>
-                    handleInputChange('orientation', e.target.value)
-                  }
-                  label="Orientation"
-                >
-                  <MenuItem value="">None</MenuItem>
-                  <MenuItem value="IN">IN</MenuItem>
-                  <MenuItem value="OUT">OUT</MenuItem>
-                  <MenuItem value="LEFT">LEFT</MenuItem>
-                  <MenuItem value="RIGHT">RIGHT</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                fullWidth
+                options={[
+                  { label: 'None', value: '' },
+                  { label: 'IN', value: 'IN' },
+                  { label: 'OUT', value: 'OUT' },
+                  { label: 'LEFT', value: 'LEFT' },
+                  { label: 'RIGHT', value: 'RIGHT' },
+                ]}
+                value={
+                  [
+                    { label: 'None', value: '' },
+                    { label: 'IN', value: 'IN' },
+                    { label: 'OUT', value: 'OUT' },
+                    { label: 'LEFT', value: 'LEFT' },
+                    { label: 'RIGHT', value: 'RIGHT' },
+                  ].find((opt) => opt.value === formData.orientation) || null
+                }
+                onChange={(_, newValue) =>
+                  handleInputChange('orientation', newValue?.value || '')
+                }
+                getOptionLabel={(option) => option.label}
+                isOptionEqualToValue={(option, value) =>
+                  option.value === value.value
+                }
+                renderInput={(params) => (
+                  <TextField {...params} label="Orientation" />
+                )}
+              />
             </Box>
 
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 2 }}>
@@ -609,19 +656,29 @@ const RFIDAntennaMaster: React.FC = () => {
             </Box>
 
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <FormControl fullWidth>
-                <InputLabel>Enabled</InputLabel>
-                <Select
-                  value={formData.is_enabled ? 'true' : 'false'}
-                  onChange={(e) =>
-                    handleInputChange('is_enabled', e.target.value === 'true')
-                  }
-                  label="Enabled"
-                >
-                  <MenuItem value="true">Yes (Logical ON)</MenuItem>
-                  <MenuItem value="false">No (Logical OFF)</MenuItem>
-                </Select>
-              </FormControl>
+              <Autocomplete
+                fullWidth
+                options={[
+                  { label: 'Yes (Logical ON)', value: true },
+                  { label: 'No (Logical OFF)', value: false },
+                ]}
+                value={
+                  [
+                    { label: 'Yes (Logical ON)', value: true },
+                    { label: 'No (Logical OFF)', value: false },
+                  ].find((opt) => opt.value === formData.is_enabled) || null
+                }
+                onChange={(_, newValue) =>
+                  handleInputChange('is_enabled', newValue?.value ?? true)
+                }
+                getOptionLabel={(option) => option.label}
+                isOptionEqualToValue={(option, value) =>
+                  option.value === value.value
+                }
+                renderInput={(params) => (
+                  <TextField {...params} label="Enabled" />
+                )}
+              />
             </Box>
 
             {editingAntenna && (

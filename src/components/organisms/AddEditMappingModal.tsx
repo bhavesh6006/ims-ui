@@ -5,10 +5,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Autocomplete,
   IconButton,
   Box,
   Typography,
@@ -20,7 +17,6 @@ import {
   TableHead,
   TableRow,
   TextField,
-  FormHelperText,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
@@ -236,31 +232,39 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
       <DialogContent dividers>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {/* Trolley Type Selection */}
-          <FormControl
+          <Autocomplete
             fullWidth
-            required
-            error={Boolean(selectedTrolleyTypeId === '')}
-          >
-            <InputLabel>Trolley Type</InputLabel>
-            <Select
-              value={selectedTrolleyTypeId}
-              onChange={(e) => setSelectedTrolleyTypeId(e.target.value)}
-              disabled={isEditMode}
-              label="Trolley Type"
-            >
-              <MenuItem value="">
-                <em>Select Trolley Type</em>
-              </MenuItem>
-              {trolleyTypes.map((type) => (
-                <MenuItem key={type.trolly_type_id} value={type.trolly_type_id}>
-                  {type.trolly_type}
-                </MenuItem>
-              ))}
-            </Select>
-            <FormHelperText>
-              {selectedTrolleyTypeId === '' ? 'Trolley Type is required' : ''}
-            </FormHelperText>
-          </FormControl>
+            options={[
+              { trolly_type_id: '', trolly_type: 'Select Trolley Type' },
+              ...trolleyTypes,
+            ]}
+            getOptionLabel={(option) => option.trolly_type}
+            value={
+              [
+                { trolly_type_id: '', trolly_type: 'Select Trolley Type' },
+                ...trolleyTypes,
+              ].find((type) => type.trolly_type_id === selectedTrolleyTypeId) ||
+              null
+            }
+            onChange={(_, newValue) =>
+              setSelectedTrolleyTypeId(newValue?.trolly_type_id || '')
+            }
+            disabled={isEditMode}
+            isOptionEqualToValue={(option, value) =>
+              option.trolly_type_id === value.trolly_type_id
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Trolley Type"
+                required
+                error={Boolean(selectedTrolleyTypeId === '')}
+                helperText={
+                  selectedTrolleyTypeId === '' ? 'Trolley Type is required' : ''
+                }
+              />
+            )}
+          />
 
           {/* Materials Table */}
           <Box>
@@ -305,31 +309,52 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
                   {materialRows.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell sx={{ width: '50%' }}>
-                        <FormControl fullWidth size="small">
-                          <Select
-                            value={row.material_id}
-                            onChange={(e) =>
-                              handleRowChange(
-                                row.id,
-                                'material_id',
-                                e.target.value
-                              )
-                            }
-                          >
-                            <MenuItem value="">
-                              <em>Select Material</em>
-                            </MenuItem>
-                            {materials.map((material: Material) => (
-                              <MenuItem
-                                key={material.material_id}
-                                value={material.material_id}
-                              >
-                                {material.material_code} -{' '}
-                                {material.material_name}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
+                        <Autocomplete
+                          fullWidth
+                          size="small"
+                          options={[
+                            {
+                              material_id: '',
+                              material_code: 'Select Material',
+                              material_name: '',
+                            },
+                            ...materials,
+                          ]}
+                          getOptionLabel={(option) =>
+                            option.material_id
+                              ? `${option.material_code} - ${option.material_name}`
+                              : option.material_code
+                          }
+                          value={
+                            [
+                              {
+                                material_id: '',
+                                material_code: 'Select Material',
+                                material_name: '',
+                              },
+                              ...materials,
+                            ].find(
+                              (material) =>
+                                material.material_id === row.material_id
+                            ) || null
+                          }
+                          onChange={(_, newValue) =>
+                            handleRowChange(
+                              row.id,
+                              'material_id',
+                              newValue?.material_id || ''
+                            )
+                          }
+                          isOptionEqualToValue={(option, value) =>
+                            option.material_id === value.material_id
+                          }
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Select Material"
+                            />
+                          )}
+                        />
                       </TableCell>
                       <TableCell sx={{ width: '35%' }}>
                         <TextField

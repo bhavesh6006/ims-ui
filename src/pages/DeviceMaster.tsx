@@ -9,10 +9,7 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Autocomplete,
   Chip,
   Stack,
 } from '@mui/material'
@@ -376,20 +373,33 @@ const DeviceMaster: React.FC = () => {
                 InputLabelProps={{ shrink: true }}
               />
               {editingDevice && (
-                <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={formData.status || 'OFFLINE'}
-                    onChange={(e) =>
-                      handleInputChange('status', e.target.value)
-                    }
-                    label="Status"
-                  >
-                    <MenuItem value="ONLINE">ONLINE</MenuItem>
-                    <MenuItem value="OFFLINE">OFFLINE</MenuItem>
-                    <MenuItem value="MAINTENANCE">MAINTENANCE</MenuItem>
-                  </Select>
-                </FormControl>
+                <Autocomplete
+                  fullWidth
+                  options={[
+                    { label: 'ONLINE', value: 'ONLINE' },
+                    { label: 'OFFLINE', value: 'OFFLINE' },
+                    { label: 'MAINTENANCE', value: 'MAINTENANCE' },
+                  ]}
+                  value={
+                    [
+                      { label: 'ONLINE', value: 'ONLINE' },
+                      { label: 'OFFLINE', value: 'OFFLINE' },
+                      { label: 'MAINTENANCE', value: 'MAINTENANCE' },
+                    ].find(
+                      (opt) => opt.value === (formData.status || 'OFFLINE')
+                    ) || null
+                  }
+                  onChange={(_, newValue) =>
+                    handleInputChange('status', newValue?.value || 'OFFLINE')
+                  }
+                  getOptionLabel={(option) => option.label}
+                  isOptionEqualToValue={(option, value) =>
+                    option.value === value.value
+                  }
+                  renderInput={(params) => (
+                    <TextField {...params} label="Status" />
+                  )}
+                />
               )}
             </Box>
           </Stack>

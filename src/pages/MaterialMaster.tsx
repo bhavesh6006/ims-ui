@@ -4,16 +4,12 @@ import {
   Typography,
   Button,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
+  Autocomplete,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   IconButton,
-  FormHelperText,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
@@ -474,56 +470,64 @@ const MaterialMaster: React.FC = () => {
               error={Boolean(errors.material_name)}
               helperText={errors.material_name}
             />
-            <FormControl
+            <Autocomplete
               fullWidth
-              required
-              error={Boolean(errors.material_type_id)}
-            >
-              <InputLabel>Material Type</InputLabel>
-              <Select
-                value={formData.materialTypeId}
-                label="Material Type"
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    materialTypeId: e.target.value as string,
-                  })
-                  setErrors({ ...errors, material_type_id: undefined })
-                }}
-              >
-                {materialTypes.map((type) => (
-                  <MenuItem
-                    key={type.material_type_id}
-                    value={type.material_type_id}
-                  >
-                    {type.material_type}
-                  </MenuItem>
-                ))}
-              </Select>
-              <FormHelperText>{errors.material_type_id}</FormHelperText>
-            </FormControl>
-            <FormControl fullWidth required error={Boolean(errors.subtool_id)}>
-              <InputLabel>Subtool</InputLabel>
-              <Select
-                value={formData.subtoolId}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    subtoolId: e.target.value as string,
-                  })
-                  setErrors({ ...errors, subtool_id: undefined })
-                }}
-                label="Subtool"
-              >
-                <MenuItem value="">None</MenuItem>
-                {subtools.map((subtool) => (
-                  <MenuItem key={subtool.subtool_id} value={subtool.subtool_id}>
-                    {subtool.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              <FormHelperText>{errors.subtool_id}</FormHelperText>
-            </FormControl>
+              options={materialTypes}
+              getOptionLabel={(option) => option.material_type}
+              value={
+                materialTypes.find(
+                  (type) => type.material_type_id === formData.materialTypeId
+                ) || null
+              }
+              onChange={(_, newValue) => {
+                setFormData({
+                  ...formData,
+                  materialTypeId: newValue?.material_type_id || '',
+                })
+                setErrors({ ...errors, material_type_id: undefined })
+              }}
+              isOptionEqualToValue={(option, value) =>
+                option.material_type_id === value.material_type_id
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Material Type"
+                  required
+                  error={Boolean(errors.material_type_id)}
+                  helperText={errors.material_type_id}
+                />
+              )}
+            />
+            <Autocomplete
+              fullWidth
+              options={[{ subtool_id: '', name: 'None' }, ...subtools]}
+              getOptionLabel={(option) => option.name}
+              value={
+                [{ subtool_id: '', name: 'None' }, ...subtools].find(
+                  (subtool) => subtool.subtool_id === formData.subtoolId
+                ) || null
+              }
+              onChange={(_, newValue) => {
+                setFormData({
+                  ...formData,
+                  subtoolId: newValue?.subtool_id || '',
+                })
+                setErrors({ ...errors, subtool_id: undefined })
+              }}
+              isOptionEqualToValue={(option, value) =>
+                option.subtool_id === value.subtool_id
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Subtool"
+                  required
+                  error={Boolean(errors.subtool_id)}
+                  helperText={errors.subtool_id}
+                />
+              )}
+            />
             <TextField
               label="Length"
               type="number"
@@ -551,23 +555,32 @@ const MaterialMaster: React.FC = () => {
               }
               fullWidth
             />
-            <FormControl fullWidth>
-              <InputLabel>Unit</InputLabel>
-              <Select
-                value={formData.unit}
-                label="Unit"
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    unit: e.target.value as 'mm' | 'cm' | 'm',
-                  })
-                }
-              >
-                <MenuItem value="cm">cm</MenuItem>
-                <MenuItem value="m">m</MenuItem>
-                <MenuItem value="mm">mm</MenuItem>
-              </Select>
-            </FormControl>
+            <Autocomplete
+              fullWidth
+              options={[
+                { label: 'cm', value: 'cm' },
+                { label: 'm', value: 'm' },
+                { label: 'mm', value: 'mm' },
+              ]}
+              value={
+                [
+                  { label: 'cm', value: 'cm' },
+                  { label: 'm', value: 'm' },
+                  { label: 'mm', value: 'mm' },
+                ].find((opt) => opt.value === formData.unit) || null
+              }
+              onChange={(_, newValue) =>
+                setFormData({
+                  ...formData,
+                  unit: (newValue?.value as 'mm' | 'cm' | 'm') || 'cm',
+                })
+              }
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              renderInput={(params) => <TextField {...params} label="Unit" />}
+            />
             <TextField
               label="Weight"
               type="number"
@@ -577,38 +590,56 @@ const MaterialMaster: React.FC = () => {
               }
               fullWidth
             />
-            <FormControl fullWidth>
-              <InputLabel>Weight Unit</InputLabel>
-              <Select
-                value={formData.weightUnit}
-                label="Weight Unit"
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    weightUnit: e.target.value as 'kg' | 'g',
-                  })
-                }
-              >
-                <MenuItem value="g">g</MenuItem>
-                <MenuItem value="kg">kg</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={formData.status}
-                label="Status"
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    status: e.target.value as string,
-                  })
-                }
-              >
-                <MenuItem value="ACTIVE">ACTIVE</MenuItem>
-                <MenuItem value="INACTIVE">INACTIVE</MenuItem>
-              </Select>
-            </FormControl>
+            <Autocomplete
+              fullWidth
+              options={[
+                { label: 'g', value: 'g' },
+                { label: 'kg', value: 'kg' },
+              ]}
+              value={
+                [
+                  { label: 'g', value: 'g' },
+                  { label: 'kg', value: 'kg' },
+                ].find((opt) => opt.value === formData.weightUnit) || null
+              }
+              onChange={(_, newValue) =>
+                setFormData({
+                  ...formData,
+                  weightUnit: (newValue?.value as 'kg' | 'g') || 'kg',
+                })
+              }
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              renderInput={(params) => (
+                <TextField {...params} label="Weight Unit" />
+              )}
+            />
+            <Autocomplete
+              fullWidth
+              options={[
+                { label: 'ACTIVE', value: 'ACTIVE' },
+                { label: 'INACTIVE', value: 'INACTIVE' },
+              ]}
+              value={
+                [
+                  { label: 'ACTIVE', value: 'ACTIVE' },
+                  { label: 'INACTIVE', value: 'INACTIVE' },
+                ].find((opt) => opt.value === formData.status) || null
+              }
+              onChange={(_, newValue) =>
+                setFormData({
+                  ...formData,
+                  status: newValue?.value || 'ACTIVE',
+                })
+              }
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              renderInput={(params) => <TextField {...params} label="Status" />}
+            />
             <TextField
               label="Description"
               value={formData.description}

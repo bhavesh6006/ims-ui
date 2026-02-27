@@ -4,16 +4,12 @@ import {
   Typography,
   Button,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
+  Autocomplete,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   IconButton,
-  FormHelperText,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
@@ -272,44 +268,69 @@ const UserManagement: React.FC = () => {
               }
               fullWidth
             />
-            <FormControl fullWidth required error={Boolean(errors.role)}>
-              <InputLabel>Role</InputLabel>
-              <Select
-                value={userForm.role}
-                onChange={(e) => {
-                  setUserForm({
-                    ...userForm,
-                    role: e.target.value as
+            <Autocomplete
+              fullWidth
+              options={[
+                { label: 'Admin', value: 'Admin' },
+                { label: 'Store Manager', value: 'Store Manager' },
+                { label: 'Operator', value: 'Operator' },
+              ]}
+              value={
+                [
+                  { label: 'Admin', value: 'Admin' },
+                  { label: 'Store Manager', value: 'Store Manager' },
+                  { label: 'Operator', value: 'Operator' },
+                ].find((opt) => opt.value === userForm.role) || null
+              }
+              onChange={(_, newValue) => {
+                setUserForm({
+                  ...userForm,
+                  role:
+                    (newValue?.value as
                       | 'Admin'
                       | 'Store Manager'
-                      | 'Operator',
-                  })
-                  setErrors({ ...errors, role: undefined })
-                }}
-                label="Role"
-              >
-                <MenuItem value="Admin">Admin</MenuItem>
-                <MenuItem value="Store Manager">Store Manager</MenuItem>
-                <MenuItem value="Operator">Operator</MenuItem>
-              </Select>
-              <FormHelperText>{errors.role}</FormHelperText>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={userForm.status ? 'true' : 'false'}
-                onChange={(e) =>
-                  setUserForm({
-                    ...userForm,
-                    status: e.target.value === 'true',
-                  })
-                }
-                label="Status"
-              >
-                <MenuItem value="true">Active</MenuItem>
-                <MenuItem value="false">Inactive</MenuItem>
-              </Select>
-            </FormControl>
+                      | 'Operator') || 'Operator',
+                })
+                setErrors({ ...errors, role: undefined })
+              }}
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Role"
+                  required
+                  error={Boolean(errors.role)}
+                  helperText={errors.role}
+                />
+              )}
+            />
+            <Autocomplete
+              fullWidth
+              options={[
+                { label: 'Active', value: true },
+                { label: 'Inactive', value: false },
+              ]}
+              value={
+                [
+                  { label: 'Active', value: true },
+                  { label: 'Inactive', value: false },
+                ].find((opt) => opt.value === userForm.status) || null
+              }
+              onChange={(_, newValue) =>
+                setUserForm({
+                  ...userForm,
+                  status: newValue?.value ?? true,
+                })
+              }
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              renderInput={(params) => <TextField {...params} label="Status" />}
+            />
           </Box>
         </DialogContent>
         <DialogActions>

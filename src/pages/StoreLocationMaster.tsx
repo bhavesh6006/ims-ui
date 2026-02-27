@@ -9,11 +9,7 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
+  Autocomplete,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
@@ -344,31 +340,35 @@ const StoreLocationMaster: React.FC = () => {
               mb: 3,
             }}
           >
-            <FormControl
+            <Autocomplete
               fullWidth
-              required
-              error={Boolean(errors.location_type_id)}
-            >
-              <InputLabel>Location Type</InputLabel>
-              <Select
-                label="Location Type"
-                value={formData.location_type_id}
-                onChange={(e) => {
-                  setFormData({ ...formData, location_type_id: e.target.value })
-                  setErrors({ ...errors, location_type_id: undefined })
-                }}
-              >
-                {locationTypes.map((type) => (
-                  <MenuItem
-                    key={type.location_type_id}
-                    value={type.location_type_id}
-                  >
-                    {type.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              <FormHelperText>{errors.location_type_id}</FormHelperText>
-            </FormControl>
+              options={locationTypes}
+              getOptionLabel={(option) => option.name}
+              value={
+                locationTypes.find(
+                  (type) => type.location_type_id === formData.location_type_id
+                ) || null
+              }
+              onChange={(_, newValue) => {
+                setFormData({
+                  ...formData,
+                  location_type_id: newValue?.location_type_id || '',
+                })
+                setErrors({ ...errors, location_type_id: undefined })
+              }}
+              isOptionEqualToValue={(option, value) =>
+                option.location_type_id === value.location_type_id
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Location Type"
+                  required
+                  error={Boolean(errors.location_type_id)}
+                  helperText={errors.location_type_id}
+                />
+              )}
+            />
             <TextField
               label="Store Code *"
               value={formData.store_code}
@@ -423,38 +423,58 @@ const StoreLocationMaster: React.FC = () => {
               fullWidth
               placeholder="Enter total area"
             />
-            <FormControl fullWidth>
-              <InputLabel>Area Unit</InputLabel>
-              <Select
-                label="Area Unit"
-                value={formData.area_unit}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    area_unit: e.target.value as 'sq_mtr' | 'sq_ft',
-                  })
-                }
-              >
-                <MenuItem value="sq_mtr">Square Meters</MenuItem>
-                <MenuItem value="sq_ft">Square Feet</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                label="Status"
-                value={formData.status}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    status: e.target.value as 'ACTIVE' | 'INACTIVE',
-                  })
-                }
-              >
-                <MenuItem value="ACTIVE">Active</MenuItem>
-                <MenuItem value="INACTIVE">Inactive</MenuItem>
-              </Select>
-            </FormControl>
+            <Autocomplete
+              fullWidth
+              options={[
+                { label: 'Square Meters', value: 'sq_mtr' },
+                { label: 'Square Feet', value: 'sq_ft' },
+              ]}
+              value={
+                [
+                  { label: 'Square Meters', value: 'sq_mtr' },
+                  { label: 'Square Feet', value: 'sq_ft' },
+                ].find((opt) => opt.value === formData.area_unit) || null
+              }
+              onChange={(_, newValue) =>
+                setFormData({
+                  ...formData,
+                  area_unit:
+                    (newValue?.value as 'sq_mtr' | 'sq_ft') || 'sq_mtr',
+                })
+              }
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              renderInput={(params) => (
+                <TextField {...params} label="Area Unit" />
+              )}
+            />
+            <Autocomplete
+              fullWidth
+              options={[
+                { label: 'Active', value: 'ACTIVE' },
+                { label: 'Inactive', value: 'INACTIVE' },
+              ]}
+              value={
+                [
+                  { label: 'Active', value: 'ACTIVE' },
+                  { label: 'Inactive', value: 'INACTIVE' },
+                ].find((opt) => opt.value === formData.status) || null
+              }
+              onChange={(_, newValue) =>
+                setFormData({
+                  ...formData,
+                  status:
+                    (newValue?.value as 'ACTIVE' | 'INACTIVE') || 'ACTIVE',
+                })
+              }
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              renderInput={(params) => <TextField {...params} label="Status" />}
+            />
             <TextField
               label="Remarks"
               value={formData.remarks}

@@ -4,17 +4,13 @@ import {
   Typography,
   Button,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
+  Autocomplete,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   IconButton,
   Paper,
-  FormHelperText,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
@@ -421,62 +417,65 @@ const TrollyMaster: React.FC = () => {
               error={Boolean(errors.trollyCode)}
               helperText={errors.trollyCode}
             />
-            <FormControl
+            <Autocomplete
               fullWidth
-              required
-              error={Boolean(errors.trollyTypeId)}
-            >
-              <InputLabel>Type</InputLabel>
-              <Select
-                value={formData.trollyTypeId}
-                label="Type"
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    trollyTypeId: e.target.value as string,
-                  })
-                  setErrors({ ...errors, trollyTypeId: undefined })
-                }}
-              >
-                {trolleyTypes.map((type) => (
-                  <MenuItem
-                    key={type.trolly_type_id}
-                    value={type.trolly_type_id}
-                  >
-                    {type.trolly_type}
-                  </MenuItem>
-                ))}
-              </Select>
-              <FormHelperText>{errors.trollyTypeId}</FormHelperText>
-            </FormControl>
-            <FormControl
+              options={trolleyTypes}
+              getOptionLabel={(option) => option.trolly_type}
+              value={
+                trolleyTypes.find(
+                  (type) => type.trolly_type_id === formData.trollyTypeId
+                ) || null
+              }
+              onChange={(_, newValue) => {
+                setFormData({
+                  ...formData,
+                  trollyTypeId: newValue?.trolly_type_id || '',
+                })
+                setErrors({ ...errors, trollyTypeId: undefined })
+              }}
+              isOptionEqualToValue={(option, value) =>
+                option.trolly_type_id === value.trolly_type_id
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Type"
+                  required
+                  error={Boolean(errors.trollyTypeId)}
+                  helperText={errors.trollyTypeId}
+                />
+              )}
+            />
+            <Autocomplete
               fullWidth
-              required
-              error={Boolean(errors.trollyConditionId)}
-            >
-              <InputLabel>Condition</InputLabel>
-              <Select
-                value={formData.trollyConditionId}
-                label="Condition"
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    trollyConditionId: e.target.value as string,
-                  })
-                  setErrors({ ...errors, trollyConditionId: undefined })
-                }}
-              >
-                {trolleyConditions.map((condition) => (
-                  <MenuItem
-                    key={condition.trolley_condition_id}
-                    value={condition.trolley_condition_id}
-                  >
-                    {condition.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              <FormHelperText>{errors.trollyConditionId}</FormHelperText>
-            </FormControl>
+              options={trolleyConditions}
+              getOptionLabel={(option) => option.name}
+              value={
+                trolleyConditions.find(
+                  (cond) =>
+                    cond.trolley_condition_id === formData.trollyConditionId
+                ) || null
+              }
+              onChange={(_, newValue) => {
+                setFormData({
+                  ...formData,
+                  trollyConditionId: newValue?.trolley_condition_id || '',
+                })
+                setErrors({ ...errors, trollyConditionId: undefined })
+              }}
+              isOptionEqualToValue={(option, value) =>
+                option.trolley_condition_id === value.trolley_condition_id
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Condition"
+                  required
+                  error={Boolean(errors.trollyConditionId)}
+                  helperText={errors.trollyConditionId}
+                />
+              )}
+            />
             <TextField
               label="QR Code / RFID"
               value={formData.qrCode}
@@ -516,23 +515,34 @@ const TrollyMaster: React.FC = () => {
               }
               fullWidth
             />
-            <FormControl fullWidth>
-              <InputLabel>Dimension Unit</InputLabel>
-              <Select
-                value={formData.dimensionUnit}
-                label="Dimension Unit"
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    dimensionUnit: e.target.value as 'mm' | 'cm' | 'm',
-                  })
-                }
-              >
-                <MenuItem value="mm">mm</MenuItem>
-                <MenuItem value="cm">cm</MenuItem>
-                <MenuItem value="m">m</MenuItem>
-              </Select>
-            </FormControl>
+            <Autocomplete
+              fullWidth
+              options={[
+                { label: 'mm', value: 'mm' },
+                { label: 'cm', value: 'cm' },
+                { label: 'm', value: 'm' },
+              ]}
+              value={
+                [
+                  { label: 'mm', value: 'mm' },
+                  { label: 'cm', value: 'cm' },
+                  { label: 'm', value: 'm' },
+                ].find((opt) => opt.value === formData.dimensionUnit) || null
+              }
+              onChange={(_, newValue) =>
+                setFormData({
+                  ...formData,
+                  dimensionUnit: (newValue?.value as 'mm' | 'cm' | 'm') || 'mm',
+                })
+              }
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              renderInput={(params) => (
+                <TextField {...params} label="Dimension Unit" />
+              )}
+            />
             <TextField
               label="Volume"
               type="number"
@@ -542,23 +552,35 @@ const TrollyMaster: React.FC = () => {
               }
               fullWidth
             />
-            <FormControl fullWidth>
-              <InputLabel>Volume Unit</InputLabel>
-              <Select
-                value={formData.volumeUnit}
-                label="Volume Unit"
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    volumeUnit: e.target.value as 'mm³' | 'cm³' | 'm³',
-                  })
-                }
-              >
-                <MenuItem value="mm³">mm³</MenuItem>
-                <MenuItem value="cm³">cm³</MenuItem>
-                <MenuItem value="m³">m³</MenuItem>
-              </Select>
-            </FormControl>
+            <Autocomplete
+              fullWidth
+              options={[
+                { label: 'mm³', value: 'mm³' },
+                { label: 'cm³', value: 'cm³' },
+                { label: 'm³', value: 'm³' },
+              ]}
+              value={
+                [
+                  { label: 'mm³', value: 'mm³' },
+                  { label: 'cm³', value: 'cm³' },
+                  { label: 'm³', value: 'm³' },
+                ].find((opt) => opt.value === formData.volumeUnit) || null
+              }
+              onChange={(_, newValue) =>
+                setFormData({
+                  ...formData,
+                  volumeUnit:
+                    (newValue?.value as 'mm³' | 'cm³' | 'm³') || 'mm³',
+                })
+              }
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              renderInput={(params) => (
+                <TextField {...params} label="Volume Unit" />
+              )}
+            />
             <TextField
               label="Ownership"
               value={formData.ownership}
@@ -569,22 +591,30 @@ const TrollyMaster: React.FC = () => {
             />
 
             {/* Status and Notes in first column */}
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={formData.status}
-                label="Status"
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    status: e.target.value as string,
-                  })
-                }
-              >
-                <MenuItem value="ACTIVE">ACTIVE</MenuItem>
-                <MenuItem value="INACTIVE">INACTIVE</MenuItem>
-              </Select>
-            </FormControl>
+            <Autocomplete
+              fullWidth
+              options={[
+                { label: 'ACTIVE', value: 'ACTIVE' },
+                { label: 'INACTIVE', value: 'INACTIVE' },
+              ]}
+              value={
+                [
+                  { label: 'ACTIVE', value: 'ACTIVE' },
+                  { label: 'INACTIVE', value: 'INACTIVE' },
+                ].find((opt) => opt.value === formData.status) || null
+              }
+              onChange={(_, newValue) =>
+                setFormData({
+                  ...formData,
+                  status: newValue?.value || 'ACTIVE',
+                })
+              }
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) =>
+                option.value === value.value
+              }
+              renderInput={(params) => <TextField {...params} label="Status" />}
+            />
 
             {/* Trolley Image in second column with matching height */}
             <Box>
