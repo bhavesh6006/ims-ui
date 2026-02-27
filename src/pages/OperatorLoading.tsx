@@ -63,6 +63,7 @@ interface MaterialStockEntry {
   loaded_by?: string
   created_at?: string
   updated_at?: string
+  location_name?: string
 }
 
 const OperatorLoading: React.FC = () => {
@@ -77,7 +78,7 @@ const OperatorLoading: React.FC = () => {
   const [trolleyQRCode, settrolleyQRCode] = useState('')
   const [scannedTrolley, setScannedTrolley] = useState<Trolly | null>(null)
   const [loadingType, setLoadingType] = useState('full')
-  const [partialQuantity, setPartialQuantity] = useState(0)
+  const [partialQuantity, setPartialQuantity] = useState<string>('')
   const [mappedQuantity, setMappedQuantity] = useState(0)
   const [showLoadingDialog, setShowLoadingDialog] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
@@ -100,6 +101,10 @@ const OperatorLoading: React.FC = () => {
   >([])
   const [loadingEntries, setLoadingEntries] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [dialogMessage, setDialogMessage] = useState<{
+    text: string
+    severity: 'success' | 'error' | 'info' | 'warning'
+  } | null>(null)
 
   const trolleyInputRef = useRef<HTMLInputElement>(null)
   const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -194,7 +199,7 @@ const OperatorLoading: React.FC = () => {
     settrolleyQRCode('')
     setScannedTrolley(null)
     setLoadingType('full')
-    setPartialQuantity(0)
+    setPartialQuantity('')
     setMappedQuantity(0)
     setMappingData(null)
     showAlert(`Work Order ${workOrder.work_order_number} selected`, 'success')
@@ -210,9 +215,10 @@ const OperatorLoading: React.FC = () => {
     settrolleyQRCode('')
     setScannedTrolley(null)
     setLoadingType('full')
-    setPartialQuantity(0)
+    setPartialQuantity('')
     setMappedQuantity(0)
     setMappingData(null)
+    setDialogMessage(null)
   }
 
   const fetchMaterialTrolleyMapping = async (
@@ -227,17 +233,19 @@ const OperatorLoading: React.FC = () => {
       if (response.success && response.data) {
         setMappingData(response.data)
         setMappedQuantity(response.data.max_quantity || 0)
-        showAlert(
-          `Mapping found: Max ${response.data.max_quantity} units for ${response.data.trolleyType?.trolly_type}`,
-          'success'
-        )
+        setDialogMessage({
+          text: `Mapping found: Max ${response.data.max_quantity} units for ${response.data.trolleyType?.trolly_type}`,
+          severity: 'success',
+        })
       } else {
-        showAlert(
-          'No mapping found for this material-trolley type combination',
-          'error'
-        )
+        setScannedTrolley(null)
+        setDialogMessage({
+          text: 'No mapping found for this material-trolley type combination',
+          severity: 'error',
+        })
         setMappedQuantity(0)
         setMappingData(null)
+        setTimeout(() => trolleyInputRef.current?.focus(), 100)
       }
     } catch (error: unknown) {
       const errorMessage =
@@ -246,10 +254,15 @@ const OperatorLoading: React.FC = () => {
               ?.message ||
             'No mapping found for this material-trolley type combination'
           : 'No mapping found for this material-trolley type combination'
-      showAlert(errorMessage, 'error')
+      setScannedTrolley(null)
+      setDialogMessage({
+        text: errorMessage,
+        severity: 'error',
+      })
       setMappedQuantity(0)
       setMappingData(null)
       console.error('Material mapping error:', error)
+      setTimeout(() => trolleyInputRef.current?.focus(), 100)
     }
   }
 
@@ -258,27 +271,33 @@ const OperatorLoading: React.FC = () => {
       if (!code.trim() || !selectedOperatorWO) return
 
       setScanning(true)
+      setDialogMessage(null)
       try {
         const trolleyResponse = await trollyService.scan(code)
         const trolleyData = (trolleyResponse.data.data ||
           trolleyResponse.data) as Trolly
 
         if (!trolleyData) {
-          showAlert('Trolley not found', 'error')
+          setDialogMessage({
+            text: `Trolley/Container not found with ID: ${code}`,
+            severity: 'error',
+          })
           setTimeout(() => trolleyInputRef.current?.focus(), 100)
           setScanning(false)
           return
         }
 
         if (trolleyData.is_occupied) {
-          showAlert('Trolley Already Occupied', 'error')
+          setDialogMessage({
+            text: `Trolley/Container already occupied with ID: ${code}`,
+            severity: 'error',
+          })
           setTimeout(() => trolleyInputRef.current?.focus(), 100)
           setScanning(false)
           return
         }
 
         setScannedTrolley(trolleyData)
-        showAlert('Trolley scanned successfully', 'success')
 
         const trolleyTypeId = trolleyData.trolly_type_id
 
@@ -294,20 +313,35 @@ const OperatorLoading: React.FC = () => {
                 String(trolleyTypeId)
               )
             } else {
-              showAlert('Material not found', 'error')
+              setScannedTrolley(null)
+              setDialogMessage({
+                text: `Material not found for code: ${selectedOperatorWO.sub_tool}`,
+                severity: 'error',
+              })
+              setTimeout(() => trolleyInputRef.current?.focus(), 100)
             }
           } catch (error) {
-            showAlert('Failed to fetch material details', 'error')
+            setScannedTrolley(null)
+            setDialogMessage({
+              text: 'Failed to fetch material details or material not found',
+              severity: 'error',
+            })
             console.error('Material fetch error:', error)
+            setTimeout(() => trolleyInputRef.current?.focus(), 100)
           }
         } else {
-          showAlert(
-            'Missing material code or trolley type information',
-            'error'
-          )
+          setScannedTrolley(null)
+          setDialogMessage({
+            text: 'Missing material code or trolley type information',
+            severity: 'error',
+          })
+          setTimeout(() => trolleyInputRef.current?.focus(), 100)
         }
       } catch (error) {
-        showAlert('Failed to scan trolley', 'error')
+        setDialogMessage({
+          text: `Trolley/Container not found with ID: ${code}`,
+          severity: 'error',
+        })
         console.error('Trolley scan error:', error)
         setTimeout(() => trolleyInputRef.current?.focus(), 100)
       } finally {
@@ -386,12 +420,17 @@ const OperatorLoading: React.FC = () => {
       return
     }
 
-    if (loadingType === 'partial' && partialQuantity <= 0) {
+    const parsedPartialQty = Number(partialQuantity)
+
+    if (
+      loadingType === 'partial' &&
+      (!parsedPartialQty || parsedPartialQty <= 0)
+    ) {
       showAlert('Please enter a valid quantity', 'error')
       return
     }
 
-    if (loadingType === 'partial' && partialQuantity > mappedQuantity) {
+    if (loadingType === 'partial' && parsedPartialQty > mappedQuantity) {
       showAlert(
         `Quantity cannot exceed maximum quantity (${mappedQuantity})`,
         'error'
@@ -401,7 +440,7 @@ const OperatorLoading: React.FC = () => {
 
     try {
       const loadedQuantity =
-        loadingType === 'full' ? mappedQuantity : partialQuantity
+        loadingType === 'full' ? mappedQuantity : parsedPartialQty
       const newOutputPlan = selectedOperatorWO.output_plan + loadedQuantity
       const newInputPlan = selectedOperatorWO.input_plan
       const newConsumedQuantity = selectedOperatorWO.consumed_quantity
@@ -427,7 +466,7 @@ const OperatorLoading: React.FC = () => {
         loaded_by: 'current-user-id',
         loaded_at: new Date().toISOString(),
         status: 'IN_STOCK',
-        remarks: `Loaded from trolley ${scannedTrolley.trolley_code} (${scannedTrolley.trolly_type})`,
+        remarks: `Loaded in trolley ${scannedTrolley.trolley_code} (${scannedTrolley.trolly_type})`,
       }
 
       await materialStockService.createStock(materialStockPayload)
@@ -591,9 +630,7 @@ const OperatorLoading: React.FC = () => {
                     <TableCell>{wo.input_plan}</TableCell>
                     <TableCell>{wo.output_plan}</TableCell>
                     <TableCell>{wo.consumed_quantity}</TableCell>
-                    <TableCell>
-                      {wo.input_plan - wo.output_plan - wo.consumed_quantity}
-                    </TableCell>
+                    <TableCell>{wo.input_plan - wo.output_plan}</TableCell>
                     <TableCell>
                       {activeTab === 0 ? (
                         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -700,6 +737,17 @@ const OperatorLoading: React.FC = () => {
               }
               sx={{ mt: 2 }}
             />
+
+            {dialogMessage && (
+              <MuiAlert
+                severity={dialogMessage.severity}
+                sx={{ mt: 2 }}
+                onClose={() => setDialogMessage(null)}
+              >
+                {dialogMessage.text}
+              </MuiAlert>
+            )}
+
             {scanning && (
               <Box sx={{ mt: 2, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
@@ -739,7 +787,7 @@ const OperatorLoading: React.FC = () => {
                 onChange={(e) => {
                   setLoadingType(e.target.value)
                   if (e.target.value === 'full') {
-                    setPartialQuantity(0)
+                    setPartialQuantity('')
                   }
                 }}
               >
@@ -764,7 +812,7 @@ const OperatorLoading: React.FC = () => {
                   label="Partial Quantity"
                   type="number"
                   value={partialQuantity}
-                  onChange={(e) => setPartialQuantity(Number(e.target.value))}
+                  onChange={(e) => setPartialQuantity(e.target.value)}
                   fullWidth
                   helperText={`Enter quantity (Max: ${mappedQuantity} units)`}
                   inputProps={{ min: 1, max: mappedQuantity }}
@@ -772,7 +820,7 @@ const OperatorLoading: React.FC = () => {
               </Box>
             )}
 
-            {(loadingType === 'full' || partialQuantity > 0) && (
+            {(loadingType === 'full' || Number(partialQuantity) > 0) && (
               <Paper sx={{ mt: 3, p: 2, backgroundColor: 'success.lighter' }}>
                 <Typography
                   variant="subtitle2"
@@ -804,7 +852,7 @@ const OperatorLoading: React.FC = () => {
                     <strong>
                       {loadingType === 'full'
                         ? mappedQuantity
-                        : partialQuantity}{' '}
+                        : Number(partialQuantity)}{' '}
                       units
                     </strong>
                   </Typography>
@@ -814,7 +862,7 @@ const OperatorLoading: React.FC = () => {
                       {selectedOperatorWO.output_plan +
                         (loadingType === 'full'
                           ? mappedQuantity
-                          : partialQuantity)}
+                          : Number(partialQuantity))}
                     </strong>
                   </Typography>
                 </Box>
@@ -900,7 +948,8 @@ const OperatorLoading: React.FC = () => {
               disabled={
                 !scannedTrolley ||
                 mappedQuantity === 0 ||
-                (loadingType === 'partial' && partialQuantity <= 0)
+                (loadingType === 'partial' &&
+                  (!Number(partialQuantity) || Number(partialQuantity) <= 0))
               }
             >
               Confirm & Save
@@ -1008,7 +1057,7 @@ const OperatorLoading: React.FC = () => {
                           {entry.status}
                         </Typography>
                       </TableCell>
-                      <TableCell>{entry.location || '-'}</TableCell>
+                      <TableCell>{entry.location_name || '-'}</TableCell>
                       <TableCell>
                         {entry.loaded_at
                           ? new Date(entry.loaded_at).toLocaleString()

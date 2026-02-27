@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Red circular background -->
+  <circle cx="256" cy="256" r="256" fill="#A50034"></circle>
+
+  <!-- Outer white ring -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="white" stroke-width="28" stroke-linecap="round" stroke-dasharray="1100 300" transform="rotate(-40 256 256)"></circle>
+
+  <!-- White dot (L eye) -->
+  <circle cx="190" cy="200" r="28" fill="white"></circle>
+
+  <!-- L shape -->
+  <path d="M240 170 V330 H300" stroke="white" stroke-width="28" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+
+  <!-- G horizontal line -->
+  <path d="M300 260 H370" stroke="white" stroke-width="28" fill="none" stroke-linecap="round"></path>
+</svg>
