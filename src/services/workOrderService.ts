@@ -83,6 +83,20 @@ const workOrderService = {
     return response.data
   },
 
+  getRefreshSummary: async (): Promise<
+    ApiResponse<{ success: boolean; last_refresh: string }>
+  > => {
+    const response = await api.get('/work-orders/refresh-summary')
+    return response.data
+  },
+
+  getLastRefreshDate: async (): Promise<
+    ApiResponse<{ last_refresh: string }>
+  > => {
+    const response = await api.get('/work-orders/getLastRefreshDate')
+    return response.data
+  },
+
   // Update work order
   update: async (
     id: string,

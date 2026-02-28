@@ -106,6 +106,8 @@ const OperatorLoading: React.FC = () => {
     severity: 'success' | 'error' | 'info' | 'warning'
   } | null>(null)
 
+  const [lastRefreshDate, setLastRefreshDate] = useState<string>('')
+
   const trolleyInputRef = useRef<HTMLInputElement>(null)
   const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -116,6 +118,10 @@ const OperatorLoading: React.FC = () => {
   const fetchWorkOrders = async () => {
     try {
       setLoading(true)
+
+      await workOrderService.getRefreshSummary()
+
+      fetchLastRefreshDate()
 
       // Fetch all records for client-side filtering
       const filters: Record<string, unknown> = {
@@ -136,8 +142,19 @@ const OperatorLoading: React.FC = () => {
     }
   }
 
+  const fetchLastRefreshDate = async () => {
+    try {
+      const response = await workOrderService.getLastRefreshDate()
+      console.log('Last refresh date:', response)
+      setLastRefreshDate(response?.last_refresh || '')
+    } catch (error) {
+      console.error('Failed to fetch last refresh date:', error)
+    }
+  }
+
   useEffect(() => {
     fetchWorkOrders()
+    fetchLastRefreshDate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -444,9 +461,7 @@ const OperatorLoading: React.FC = () => {
       const newOutputPlan = selectedOperatorWO.output_plan + loadedQuantity
       const newInputPlan = selectedOperatorWO.input_plan
       const newConsumedQuantity = selectedOperatorWO.consumed_quantity
-      const newRemainingQuantity =
-        newInputPlan - newOutputPlan - newConsumedQuantity
-
+      const newRemainingQuantity = newInputPlan - newOutputPlan
       let newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' =
         selectedOperatorWO.status
       if (newInputPlan === 0) {
@@ -887,17 +902,28 @@ const OperatorLoading: React.FC = () => {
         <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>
           Operator Loading
         </Typography>
-        <ActionButton
-          label="Refresh"
-          loadingLabel="Refresh"
-          loading={syncing}
-          icon={<RefreshIcon />}
-          onClick={handleSyncWorkOrders}
-          variant="contained"
-          color="primary"
-          size="small"
-          sx={{ minWidth: 110 }}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {lastRefreshDate && (
+            <Typography
+              variant="body2"
+              sx={{ ml: 2, display: 'inline-block', verticalAlign: 'middle' }}
+              color="text.secondary"
+            >
+              Last refreshed: {new Date(lastRefreshDate).toLocaleString()}
+            </Typography>
+          )}
+          <ActionButton
+            label="Refresh"
+            loadingLabel="Refresh"
+            loading={syncing}
+            icon={<RefreshIcon />}
+            onClick={handleSyncWorkOrders}
+            variant="contained"
+            color="primary"
+            size="small"
+            sx={{ minWidth: 110 }}
+          />
+        </Box>
       </Box>
 
       <Paper sx={{ p: 3, mt: 3 }}>{renderMainScreen()}</Paper>
