@@ -3,7 +3,10 @@ import { setupApiPermissionInterceptor } from '../utils/apiPermissionInterceptor
 import { normalizeRole } from '../utils/permissions'
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+  (window as unknown as { __APP_CONFIG__?: { API_BASE_URL?: string } })
+    .__APP_CONFIG__?.API_BASE_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:3000/api'
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
