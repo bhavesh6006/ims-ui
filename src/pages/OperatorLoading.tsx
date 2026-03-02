@@ -119,9 +119,7 @@ const OperatorLoading: React.FC = () => {
     try {
       setLoading(true)
 
-      await workOrderService.getRefreshSummary()
-
-      fetchLastRefreshDate()
+      await fetchLastRefreshDate()
 
       // Fetch all records for client-side filtering
       const filters: Record<string, unknown> = {
@@ -519,6 +517,8 @@ const OperatorLoading: React.FC = () => {
     setSyncing(true)
     try {
       // TODO: Replace with external API call to sync work order data into DB
+      await workOrderService.getRefreshSummary()
+
       await fetchWorkOrders()
       showAlert('Work orders refreshed successfully', 'success')
     } catch (error) {
