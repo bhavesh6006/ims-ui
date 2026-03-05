@@ -21,6 +21,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
+import { v4 as uuidv4 } from 'uuid' // Import the uuid library
 import {
   trolleyTypeService,
   materialService,
@@ -106,7 +107,7 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
     setSelectedTrolleyTypeId('')
     setMaterialRows([
       {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         material_id: '',
         max_quantity: '',
         isNew: true,
@@ -122,7 +123,7 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
     setMaterialRows([
       ...materialRows,
       {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         material_id: '',
         max_quantity: '',
         isNew: true,
