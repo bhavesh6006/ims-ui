@@ -19,7 +19,7 @@ const generateSessionId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
-const TOKEN_REFRESH_INTERVAL = 10 * 60 * 1000 // Refresh token every 14 minutes (before 15 min expiry)
+const TOKEN_REFRESH_INTERVAL = 10 * 60 * 1000 // Refresh token every 10 minutes (before 15 min expiry)
 const INACTIVITY_TIMEOUT = 15 * 60 * 1000 // 15 minutes
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
