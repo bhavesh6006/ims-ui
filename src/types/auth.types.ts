@@ -24,5 +24,6 @@ export interface AuthContextType {
 
 export interface LoginResponse {
   token: string
+  refreshToken: string
   user: User
 }

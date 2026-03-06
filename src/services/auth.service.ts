@@ -97,9 +97,10 @@ class AuthService {
         }
       )
 
-      // Store token and user data
-      if (response.data.token) {
+      // Store token and refresh token
+      if (response.data.token && response.data.refreshToken) {
         localStorage.setItem('token', response.data.token)
+        localStorage.setItem('refresh_token', response.data.refreshToken) // Store refresh token
         localStorage.setItem('user', JSON.stringify(response.data.user))
       }
 
@@ -124,26 +125,48 @@ class AuthService {
   }
 
   async refreshToken(): Promise<string> {
-    const currentToken = localStorage.getItem('token')
+    const refreshToken = localStorage.getItem('refresh_token') // Retrieve the refresh token
 
-    if (!currentToken) {
-      throw new Error('No token found')
+    if (!refreshToken) {
+      console.warn('No refresh token found in localStorage.')
+      this.logout() // Log the user out if no refresh token is found
+      throw new Error('No refresh token found. Please login again.')
     }
 
     try {
-      const response = await axios.post<{ token: string }>(
+      console.log('Refreshing token...')
+      const response = await axios.post<{
+        token: string
+        refreshToken: string
+      }>(
         `${API_BASE_URL}/auth/refresh`,
         {},
         {
-          headers: this.createHeaders(currentToken),
+          headers: {
+            Authorization: `Bearer ${refreshToken}`, // Explicitly use the refresh token
+          },
           timeout: 5000,
         }
       )
 
-      const newToken = response.data.token
+      const { token: newToken, refreshToken: newRefreshToken } = response.data
+
+      // Update both the access token and the refresh token in localStorage
       localStorage.setItem('token', newToken)
+      localStorage.setItem('refresh_token', newRefreshToken)
       return newToken
-    } catch {
+    } catch (error: unknown) {
+      // Use 'unknown' as the type for the error
+      if (error instanceof AxiosError) {
+        // Type guard to check if the error is an AxiosError
+        if (error.response?.data?.code === 'REFRESH_TOKEN_EXPIRED') {
+          console.error('Refresh token expired. Logging out...')
+          this.logout()
+          throw new Error('Session expired. Please login again.')
+        }
+        console.error('Error during token refresh:', error)
+      }
+
       this.logout()
       throw new Error('Token refresh failed. Please login again.')
     }
@@ -152,6 +175,7 @@ class AuthService {
   logout(): void {
     // Clear all auth-related data from localStorage
     localStorage.removeItem('token')
+    localStorage.removeItem('refresh_token')
     localStorage.removeItem('user')
     localStorage.removeItem('sessionId')
 

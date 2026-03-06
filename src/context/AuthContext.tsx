@@ -19,7 +19,8 @@ const generateSessionId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
-const TOKEN_REFRESH_INTERVAL = 14 * 60 * 1000 // Refresh token every 14 minutes (before 15 min expiry)
+const TOKEN_REFRESH_INTERVAL = 10 * 60 * 1000 // Refresh token every 14 minutes (before 15 min expiry)
+const INACTIVITY_TIMEOUT = 15 * 60 * 1000 // 15 minutes
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
@@ -33,7 +34,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return storedSessionId === sessionId && sessionId !== null
   }, [sessionId])
 
-  // Logout must be defined before refreshToken
+  // Logout function
   const logout = useCallback(() => {
     authService.logout()
     setToken(null)
@@ -41,8 +42,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setSessionId(null)
   }, [])
 
+  // Reset inactivity timer
+  const resetInactivityTimer = useCallback(() => {
+    const timeoutId = localStorage.getItem('inactivityTimeoutId')
+    if (timeoutId) {
+      clearTimeout(Number(timeoutId))
+    }
+
+    const newTimeoutId = setTimeout(() => {
+      console.log('User logged out due to inactivity')
+      logout()
+      window.location.href = '/login'
+    }, INACTIVITY_TIMEOUT)
+
+    localStorage.setItem('inactivityTimeoutId', String(newTimeoutId))
+  }, [logout])
+
   // Token refresh function
   const refreshToken = useCallback(async () => {
+    const currentToken = localStorage.getItem('token')
+
+    if (!currentToken) {
+      console.warn('No token found. Skipping token refresh.')
+      return
+    }
+
     try {
       const newToken = await authService.refreshToken()
       setToken(newToken)
@@ -69,14 +93,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'sessionId' && e.newValue !== sessionId) {
-        // Another tab has logged in, logout current session
         console.log('Session invalidated: Login detected from another tab')
         logout()
         window.location.href = '/login'
       }
 
       if (e.key === 'token' && !e.newValue) {
-        // Token was removed (logout from another tab)
         logout()
       }
     }
@@ -93,13 +115,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         logout()
         window.location.href = '/login'
       }
-    }, 3000) // Check every 3 seconds
+    }, 3000)
 
     return () => clearInterval(interval)
   }, [token, sessionId, isSessionValid, logout])
 
+  // Check for existing token on mount
   useEffect(() => {
-    // Check for existing token on mount
     const storedToken = localStorage.getItem('token')
     const storedUser = localStorage.getItem('user')
     const storedSessionId = localStorage.getItem('sessionId')
@@ -107,10 +129,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (storedToken && storedUser && storedSessionId) {
       try {
         const decoded = jwtDecode<JwtPayload>(storedToken)
-        // Check if token is expired
         if (decoded.exp * 1000 > Date.now()) {
           const parsedUser = JSON.parse(storedUser)
-          // Check if user is active
           if (parsedUser.status) {
             setToken(storedToken)
             setUser(parsedUser)
@@ -128,28 +148,51 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false)
   }, [logout])
 
+  // Login function
   const login = async (username: string, password: string) => {
     const response = await authService.login(username, password)
 
-    // Check if user is active
     if (!response.user.status) {
       throw new Error(
         'Your account has been deactivated. Please contact administrator.'
       )
     }
 
-    // Generate new session ID
     const newSessionId = generateSessionId()
 
     setToken(response.token)
     setUser(response.user)
     setSessionId(newSessionId)
 
-    // Store in localStorage (this will trigger storage event in other tabs)
     localStorage.setItem('token', response.token)
     localStorage.setItem('user', JSON.stringify(response.user))
     localStorage.setItem('sessionId', newSessionId)
   }
+
+  // Handle user activity
+  useEffect(() => {
+    const handleUserActivity = () => {
+      resetInactivityTimer()
+    }
+
+    window.addEventListener('mousemove', handleUserActivity)
+    window.addEventListener('keydown', handleUserActivity)
+    window.addEventListener('click', handleUserActivity)
+
+    resetInactivityTimer()
+
+    return () => {
+      window.removeEventListener('mousemove', handleUserActivity)
+      window.removeEventListener('keydown', handleUserActivity)
+      window.removeEventListener('click', handleUserActivity)
+
+      const timeoutId = localStorage.getItem('inactivityTimeoutId')
+      if (timeoutId) {
+        clearTimeout(Number(timeoutId))
+        localStorage.removeItem('inactivityTimeoutId')
+      }
+    }
+  }, [resetInactivityTimer])
 
   const value: AuthContextType = {
     user,

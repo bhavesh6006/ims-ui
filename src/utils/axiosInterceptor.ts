@@ -26,10 +26,13 @@ const processQueue = (error: unknown, token: string | null = null) => {
 export const setupAxiosInterceptors = () => {
   // Request interceptor
   axios.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-      const token = localStorage.getItem('token')
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
+    (config) => {
+      // Only set the global Authorization header if the request is not for /auth/refresh
+      if (!config.url?.includes('/auth/refresh')) {
+        const token = localStorage.getItem('token') // Use the access token for normal requests
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`
+        }
       }
       config.headers['Content-Type'] = 'application/json'
       config.headers['Accept'] = 'application/json'
@@ -70,26 +73,37 @@ export const setupAxiosInterceptors = () => {
         originalRequest._retry = true
         isRefreshing = true
 
-        const token = localStorage.getItem('token')
-        if (!token) {
+        const refreshToken = localStorage.getItem('refresh_token') // Use the refresh token
+        if (!refreshToken) {
+          console.warn('No refresh token found. Redirecting to login.')
           localStorage.clear()
           window.location.href = '/login'
           return Promise.reject(error)
         }
 
         try {
-          const response = await axios.post(
+          console.log('Refreshing token...')
+          const response = await axios.post<{
+            token: string
+            refreshToken: string
+          }>(
             `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/auth/refresh`,
             {},
             {
               headers: {
-                Authorization: `Bearer ${token}`,
+                Authorization: `Bearer ${refreshToken}`, // Explicitly use the refresh token
               },
             }
           )
 
-          const newToken = response.data.token
+          const { token: newToken, refreshToken: newRefreshToken } =
+            response.data
+          console.log('New tokens received:', { newToken, newRefreshToken })
+
+          // Update both the access token and the refresh token in localStorage
           localStorage.setItem('token', newToken)
+          localStorage.setItem('refresh_token', newRefreshToken)
+
           axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
           processQueue(null, newToken)
           isRefreshing = false
@@ -97,6 +111,7 @@ export const setupAxiosInterceptors = () => {
           originalRequest.headers.Authorization = `Bearer ${newToken}`
           return axios(originalRequest)
         } catch (refreshError) {
+          console.error('Failed to refresh token:', refreshError)
           processQueue(refreshError, null)
           isRefreshing = false
           localStorage.clear()
@@ -110,6 +125,7 @@ export const setupAxiosInterceptors = () => {
         error.response?.status === 403 &&
         error.response?.data?.code === 'SESSION_EXPIRED'
       ) {
+        console.warn('Session expired. Redirecting to login.')
         localStorage.clear()
         window.location.href = '/login'
       }
