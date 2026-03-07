@@ -159,7 +159,7 @@ const OperatorLoading: React.FC = () => {
   // Reset to first page when tab or search changes
   useEffect(() => {
     setPage(0)
-  }, [activeTab, searchQuery])
+  }, [activeTab]) //, searchQuery
 
   const getFilteredWorkOrders = () => {
     let filtered = operatorWorkOrders
@@ -181,23 +181,23 @@ const OperatorLoading: React.FC = () => {
     }
 
     // Apply client-side search across multiple fields
-    if (searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase()
-      filtered = filtered.filter((wo) => {
-        // Search by work order number
-        const matchesWorkOrder = wo.work_order_number
-          .toLowerCase()
-          .includes(query)
+    // if (searchQuery.trim()) {
+    //   const query = searchQuery.trim().toLowerCase()
+    //   filtered = filtered.filter((wo) => {
+    //     // Search by work order number
+    //     const matchesWorkOrder = wo.work_order_number
+    //       .toLowerCase()
+    //       .includes(query)
 
-        // Search by material code (sub_tool)
-        const matchesMaterialCode = wo.sub_tool.toLowerCase().includes(query)
+    //     // Search by material code (sub_tool)
+    //     const matchesMaterialCode = wo.sub_tool.toLowerCase().includes(query)
 
-        // Search by date (format: YYYY-MM-DD)
-        const matchesDate = wo.date.includes(query)
+    //     // Search by date (format: YYYY-MM-DD)
+    //     const matchesDate = wo.date.includes(query)
 
-        return matchesWorkOrder || matchesMaterialCode || matchesDate
-      })
-    }
+    //     return matchesWorkOrder || matchesMaterialCode || matchesDate
+    //   })
+    // }
 
     return filtered
   }
