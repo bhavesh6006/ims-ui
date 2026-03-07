@@ -33,7 +33,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   {
-    text: 'Trolly Master',
+    text: 'Cart Master',
     icon: <LocalShippingIcon />,
     path: '/trolly-master',
   },
@@ -43,7 +43,7 @@ const menuItems: MenuItem[] = [
     path: '/material-master',
   },
   {
-    text: 'Trolly-Material Mapping',
+    text: 'Cart-Material Mapping',
     icon: <CategoryIcon />,
     path: '/trolly-material-mapping',
   },
@@ -68,7 +68,7 @@ const menuItems: MenuItem[] = [
     path: '/user-management',
   },
   {
-    text: 'Operator Loading',
+    text: 'PRODUCTION - Cart Loading',
     icon: <ShoppingCartIcon />,
     path: '/operator-loading',
   },

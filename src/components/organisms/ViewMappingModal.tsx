@@ -36,7 +36,7 @@ const ViewMappingModal: React.FC<ViewMappingModalProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        View Trolley Material Mapping
+        View Cart Material Mapping
         <IconButton
           onClick={onClose}
           sx={{ position: 'absolute', right: 8, top: 8 }}
@@ -47,7 +47,7 @@ const ViewMappingModal: React.FC<ViewMappingModalProps> = ({
       <DialogContent dividers>
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle2" color="textSecondary">
-            Trolley Type
+            Cart Type
           </Typography>
           <Typography variant="h6">{mapping.trolley_type}</Typography>
         </Box>

@@ -145,7 +145,7 @@ const TrollyMaterialMapping: React.FC = () => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Trolley-Material Mapping</Typography>
+        <Typography variant="h4">Cart-Material Mapping</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
           Add Mapping
         </Button>
@@ -155,7 +155,7 @@ const TrollyMaterialMapping: React.FC = () => {
         <SearchBar
           value={search}
           onChange={setSearch}
-          placeholder="Search by trolley type..."
+          placeholder="Search by cart type..."
         />
       </Box>
 
@@ -163,7 +163,7 @@ const TrollyMaterialMapping: React.FC = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableCell sx={{ fontWeight: 600 }}>Trolley Type</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Cart Type</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>
                 Number of Materials Mapped
               </TableCell>

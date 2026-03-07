@@ -221,8 +221,8 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
         {isEditMode
-          ? 'Edit Trolley Material Mapping'
-          : 'Add Trolley Material Mapping'}
+          ? 'Edit Cart Material Mapping'
+          : 'Add Cart Material Mapping'}
         <IconButton
           onClick={onClose}
           sx={{ position: 'absolute', right: 8, top: 8 }}
@@ -232,17 +232,17 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
       </DialogTitle>
       <DialogContent dividers>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {/* Trolley Type Selection */}
+          {/* Cart Type Selection */}
           <Autocomplete
             fullWidth
             options={[
-              { trolly_type_id: '', trolly_type: 'Select Trolley Type' },
+              { trolly_type_id: '', trolly_type: 'Select Cart Type' },
               ...trolleyTypes,
             ]}
             getOptionLabel={(option) => option.trolly_type}
             value={
               [
-                { trolly_type_id: '', trolly_type: 'Select Trolley Type' },
+                { trolly_type_id: '', trolly_type: 'Select Cart Type' },
                 ...trolleyTypes,
               ].find((type) => type.trolly_type_id === selectedTrolleyTypeId) ||
               null
@@ -257,11 +257,11 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Trolley Type"
+                label="Cart Type"
                 required
                 error={Boolean(selectedTrolleyTypeId === '')}
                 helperText={
-                  selectedTrolleyTypeId === '' ? 'Trolley Type is required' : ''
+                  selectedTrolleyTypeId === '' ? 'Cart Type is required' : ''
                 }
               />
             )}

@@ -74,7 +74,7 @@ const TrollyMaster: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string>('')
 
   const columns: Column[] = [
-    { id: 'trolley_code', label: 'Trolley Code' },
+    { id: 'trolley_code', label: 'Cart Code' },
     {
       id: 'trolly_type',
       label: 'Type',
@@ -134,7 +134,7 @@ const TrollyMaster: React.FC = () => {
       setTrollies(response.data)
       setTotal(response.count)
     } catch {
-      showAlert('Failed to load trollies', 'error')
+      showAlert('Failed to load carts', 'error')
     } finally {
       setLoading(false)
     }
@@ -149,7 +149,7 @@ const TrollyMaster: React.FC = () => {
       )
       setTrolleyTypes(sortedTypes)
     } catch {
-      showAlert('Failed to load trolley types', 'error')
+      showAlert('Failed to load cart types', 'error')
       setTrolleyTypes([])
     }
   }, [])
@@ -163,7 +163,7 @@ const TrollyMaster: React.FC = () => {
       )
       setTrolleyConditions(sortedConditions)
     } catch {
-      showAlert('Failed to load trolley conditions', 'error')
+      showAlert('Failed to load cart conditions', 'error')
       setTrolleyConditions([])
     }
   }, [])
@@ -178,7 +178,7 @@ const TrollyMaster: React.FC = () => {
     const newErrors: FormErrors = {}
 
     if (!formData.trollyCode?.trim()) {
-      newErrors.trollyCode = 'Trolley Code is required'
+      newErrors.trollyCode = 'Cart Code is required'
     }
 
     if (!formData.trollyTypeId) {
@@ -274,10 +274,10 @@ const TrollyMaster: React.FC = () => {
   }
 
   const handleDelete = async (trolly: Trolly) => {
-    if (window.confirm(`Delete trolly ${trolly.trolley_code}?`)) {
+    if (window.confirm(`Delete cart ${trolly.trolley_code}?`)) {
       try {
         await trollyService.delete(trolly.trolley_id)
-        showAlert('Trolly deleted', 'success')
+        showAlert('Cart deleted', 'success')
         loadTrollies()
       } catch {
         showAlert('Failed to delete', 'error')
@@ -290,7 +290,7 @@ const TrollyMaster: React.FC = () => {
 
     // Validate required fields
     if (!formData.trollyCode.trim()) {
-      showAlert('Trolley Code is required', 'error')
+      showAlert('Cart Code is required', 'error')
       return
     }
     if (!formData.trollyTypeId) {
@@ -330,10 +330,10 @@ const TrollyMaster: React.FC = () => {
 
       if (editingTrolly) {
         await trollyService.update(editingTrolly.trolley_id, payload)
-        showAlert('Trolly updated', 'success')
+        showAlert('Cart updated', 'success')
       } else {
         await trollyService.create(payload)
-        showAlert('Trolly created', 'success')
+        showAlert('Cart created', 'success')
       }
       setModalOpen(false)
       loadTrollies()
@@ -353,7 +353,7 @@ const TrollyMaster: React.FC = () => {
           'error'
         )
       } else {
-        showAlert('Failed to save trolly', 'error')
+        showAlert('Failed to save cart', 'error')
       }
     }
   }
@@ -361,9 +361,9 @@ const TrollyMaster: React.FC = () => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Trolly Master</Typography>
+        <Typography variant="h4">Cart Master</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
-          Add Trolly
+          Add Cart
         </Button>
       </Box>
 
@@ -371,7 +371,7 @@ const TrollyMaster: React.FC = () => {
         <SearchBar
           value={search}
           onChange={setSearch}
-          placeholder="Search trollies..."
+          placeholder="Search carts..."
         />
       </Box>
 
@@ -395,7 +395,7 @@ const TrollyMaster: React.FC = () => {
         fullWidth
       >
         <DialogTitle>
-          {editingTrolly ? 'Edit Trolly' : 'Add Trolly'}
+          {editingTrolly ? 'Edit Cart' : 'Add Cart'}
           <IconButton
             onClick={() => setModalOpen(false)}
             sx={{ position: 'absolute', right: 8, top: 8 }}
@@ -406,7 +406,7 @@ const TrollyMaster: React.FC = () => {
         <DialogContent dividers>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
             <TextField
-              label="Trolley Code"
+              label="Cart Code"
               value={formData.trollyCode}
               onChange={(e) => {
                 setFormData({ ...formData, trollyCode: e.target.value })
@@ -627,7 +627,7 @@ const TrollyMaster: React.FC = () => {
                   fontWeight: 400,
                 }}
               >
-                Trolley Image (Optional)
+                Cart Image (Optional)
               </Typography>
               <Paper
                 sx={{
@@ -662,7 +662,7 @@ const TrollyMaster: React.FC = () => {
                     <Box
                       component="img"
                       src={imagePreview}
-                      alt="Trolley Preview"
+                      alt="Cart Preview"
                       sx={{
                         maxWidth: '100%',
                         maxHeight: 120,

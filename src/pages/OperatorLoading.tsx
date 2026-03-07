@@ -19,7 +19,7 @@ import {
   TableRow,
   Tabs,
   Tab,
-  InputAdornment,
+  // InputAdornment,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -27,7 +27,7 @@ import {
   IconButton,
   TablePagination,
 } from '@mui/material'
-import SearchIcon from '@mui/icons-material/Search'
+// import SearchIcon from '@mui/icons-material/Search'
 import CancelIcon from '@mui/icons-material/Cancel'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import CloseIcon from '@mui/icons-material/Close'
@@ -82,7 +82,7 @@ const OperatorLoading: React.FC = () => {
   const [mappedQuantity, setMappedQuantity] = useState(0)
   const [showLoadingDialog, setShowLoadingDialog] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
-  const [searchQuery, setSearchQuery] = useState('')
+  // const [searchQuery, setSearchQuery] = useState('')
   const [alert, setAlert] = useState({
     open: false,
     message: '',
@@ -255,7 +255,7 @@ const OperatorLoading: React.FC = () => {
       } else {
         setScannedTrolley(null)
         setDialogMessage({
-          text: 'No mapping found for this material-trolley type combination',
+          text: 'No mapping found for this material-cart type combination',
           severity: 'error',
         })
         setMappedQuantity(0)
@@ -267,8 +267,8 @@ const OperatorLoading: React.FC = () => {
         error && typeof error === 'object' && 'response' in error
           ? (error.response as { data?: { message?: string } })?.data
               ?.message ||
-            'No mapping found for this material-trolley type combination'
-          : 'No mapping found for this material-trolley type combination'
+            'No mapping found for this material-cart type combination'
+          : 'No mapping found for this material-cart type combination'
       setScannedTrolley(null)
       setDialogMessage({
         text: errorMessage,
@@ -294,7 +294,7 @@ const OperatorLoading: React.FC = () => {
 
         if (!trolleyData) {
           setDialogMessage({
-            text: `Trolley/Container not found with ID: ${code}`,
+            text: `Cart/Container not found with ID: ${code}`,
             severity: 'error',
           })
           setTimeout(() => trolleyInputRef.current?.focus(), 100)
@@ -304,7 +304,7 @@ const OperatorLoading: React.FC = () => {
 
         if (trolleyData.is_occupied) {
           setDialogMessage({
-            text: `Trolley/Container already occupied with ID: ${code}`,
+            text: `Cart/Container already occupied with ID: ${code}`,
             severity: 'error',
           })
           setTimeout(() => trolleyInputRef.current?.focus(), 100)
@@ -347,14 +347,14 @@ const OperatorLoading: React.FC = () => {
         } else {
           setScannedTrolley(null)
           setDialogMessage({
-            text: 'Missing material code or trolley type information',
+            text: 'Missing material code or cart type information',
             severity: 'error',
           })
           setTimeout(() => trolleyInputRef.current?.focus(), 100)
         }
       } catch (error) {
         setDialogMessage({
-          text: `Trolley/Container not found with ID: ${code}`,
+          text: `Cart/Container not found with ID: ${code}`,
           severity: 'error',
         })
         console.error('Trolley scan error:', error)
@@ -479,7 +479,7 @@ const OperatorLoading: React.FC = () => {
         loaded_by: 'current-user-id',
         loaded_at: new Date().toISOString(),
         status: 'IN_STOCK',
-        remarks: `Loaded in trolley ${scannedTrolley.trolley_code} (${scannedTrolley.trolly_type})`,
+        remarks: `Loaded in cart ${scannedTrolley.trolley_code} (${scannedTrolley.trolly_type})`,
       }
 
       await materialStockService.createStock(materialStockPayload)
@@ -539,7 +539,7 @@ const OperatorLoading: React.FC = () => {
 
     return (
       <Box>
-        <TextField
+        {/* <TextField
           fullWidth
           placeholder="Search by Date, Material Code (SUB Tool), or Work Order Number"
           value={searchQuery}
@@ -552,7 +552,7 @@ const OperatorLoading: React.FC = () => {
             ),
           }}
           sx={{ mb: 3 }}
-        />
+        /> */}
 
         <Tabs
           value={activeTab}
@@ -567,46 +567,46 @@ const OperatorLoading: React.FC = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell>
-                  <strong>Work Order No.</strong>
+                <TableCell sx={{ fontSize: '16px' }}>
+                  <strong>Work Order</strong>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ fontSize: '16px' }}>
                   <strong>Date</strong>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ fontSize: '16px' }}>
                   <strong>Tool</strong>
                 </TableCell>
-                <TableCell>
-                  <strong>Material Code (SUB Tool)</strong>
+                <TableCell sx={{ fontSize: '16px' }}>
+                  <strong>SUB Tool</strong>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ fontSize: '16px' }}>
                   <strong>Door Colour</strong>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ fontSize: '16px' }}>
                   <strong>Handle</strong>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ fontSize: '16px' }}>
                   <strong>Micom</strong>
                 </TableCell>
-                <TableCell>
-                  <strong>Lock1</strong>
+                <TableCell sx={{ fontSize: '16px' }}>
+                  <strong>Lock Type</strong>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ fontSize: '16px' }}>
                   <strong>Disp Type</strong>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ fontSize: '16px' }}>
                   <strong>Planned</strong>
                 </TableCell>
-                <TableCell>
-                  <strong>In Stock</strong>
+                <TableCell sx={{ fontSize: '16px' }}>
+                  <strong>Produced</strong>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ fontSize: '16px' }}>
                   <strong>Consumed</strong>
                 </TableCell>
-                <TableCell>
-                  <strong>Pending</strong>
+                <TableCell sx={{ fontSize: '16px' }}>
+                  <strong>Remaining</strong>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ fontSize: '16px' }}>
                   <strong>Action</strong>
                 </TableCell>
               </TableRow>
@@ -614,7 +614,11 @@ const OperatorLoading: React.FC = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={14} align="center">
+                  <TableCell
+                    colSpan={14}
+                    align="center"
+                    sx={{ fontSize: '16px' }}
+                  >
                     <Typography variant="body2" color="text.secondary" py={3}>
                       Loading...
                     </Typography>
@@ -622,7 +626,11 @@ const OperatorLoading: React.FC = () => {
                 </TableRow>
               ) : paginatedOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={14} align="center">
+                  <TableCell
+                    colSpan={14}
+                    align="center"
+                    sx={{ fontSize: '16px' }}
+                  >
                     <Typography variant="body2" color="text.secondary" py={3}>
                       No work orders found
                     </Typography>
@@ -631,22 +639,36 @@ const OperatorLoading: React.FC = () => {
               ) : (
                 paginatedOrders.map((wo) => (
                   <TableRow key={wo.id}>
-                    <TableCell>{wo.work_order_number}</TableCell>
-                    <TableCell>{wo.date}</TableCell>
-                    <TableCell>{wo.tool}</TableCell>
-                    <TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
+                      {wo.work_order_number}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>{wo.date}</TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>{wo.tool}</TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
                       <strong>{wo.sub_tool}</strong>
                     </TableCell>
-                    <TableCell>{wo.door_colour}</TableCell>
-                    <TableCell>{wo.handle}</TableCell>
-                    <TableCell>{wo.micom}</TableCell>
-                    <TableCell>{wo.lock1}</TableCell>
-                    <TableCell>{wo.disp_type}</TableCell>
-                    <TableCell>{wo.input_plan}</TableCell>
-                    <TableCell>{wo.output_plan}</TableCell>
-                    <TableCell>{wo.consumed_quantity}</TableCell>
-                    <TableCell>{wo.input_plan - wo.output_plan}</TableCell>
-                    <TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
+                      {wo.door_colour}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>{wo.handle}</TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>{wo.micom}</TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>{wo.lock1}</TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
+                      {wo.disp_type}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
+                      {wo.input_plan}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
+                      {wo.output_plan}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
+                      {wo.consumed_quantity}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
+                      {wo.input_plan - wo.output_plan}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
                       {activeTab === 0 ? (
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button
@@ -731,19 +753,19 @@ const OperatorLoading: React.FC = () => {
         {!scannedTrolley ? (
           <Box>
             <Typography variant="h6" sx={{ mb: 1 }}>
-              Scan Trolley Barcode/QR Code
+              Scan Cart Barcode/QR Code
             </Typography>
 
             <TextField
               inputRef={trolleyInputRef}
               name="trolleyQRCode"
-              label="Trolley Barcode/QR Code"
+              label="Cart Barcode/QR Code"
               value={trolleyQRCode}
               onChange={handleTrolleyInputChange}
               onKeyDown={handleTrolleyKeyDown}
               fullWidth
               autoFocus
-              placeholder="Scan or type trolley barcode/QR code"
+              placeholder="Scan or type cart barcode/QR code"
               disabled={scanning}
               helperText={
                 scanning
@@ -766,7 +788,7 @@ const OperatorLoading: React.FC = () => {
             {scanning && (
               <Box sx={{ mt: 2, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
-                  Scanning trolley...
+                  Scanning cart...
                 </Typography>
               </Box>
             )}
@@ -781,13 +803,13 @@ const OperatorLoading: React.FC = () => {
         ) : (
           <Box>
             <MuiAlert severity="success" sx={{ mb: 3 }}>
-              Trolley {scannedTrolley.trolley_code} (Type:{' '}
+              Cart {scannedTrolley.trolley_code} (Type:{' '}
               {scannedTrolley.trolly_type}) scanned successfully
             </MuiAlert>
 
             {mappingData && mappedQuantity > 0 && (
               <MuiAlert severity="info" sx={{ mb: 3 }}>
-                Material-Trolley Type mapping found: Max {mappedQuantity} units
+                Material-Cart Type mapping found: Max {mappedQuantity} units
                 {mappingData.material &&
                   ` for ${mappingData.material.material_name}`}
               </MuiAlert>
@@ -851,8 +873,8 @@ const OperatorLoading: React.FC = () => {
                     <strong>{selectedOperatorWO.sub_tool}</strong>
                   </Typography>
                   <Typography variant="body2">
-                    Trolley: <strong>{scannedTrolley.trolley_code}</strong>{' '}
-                    (Type: {scannedTrolley.trolly_type})
+                    Cart: <strong>{scannedTrolley.trolley_code}</strong> (Type:{' '}
+                    {scannedTrolley.trolly_type})
                   </Typography>
                   <Typography variant="body2">
                     Loading Type:{' '}
@@ -900,7 +922,7 @@ const OperatorLoading: React.FC = () => {
         }}
       >
         <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>
-          Operator Loading
+          PRODUCTION - Cart Loading
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {lastRefreshDate && (
@@ -1030,28 +1052,28 @@ const OperatorLoading: React.FC = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>
-                      <strong>Trolley Code</strong>
+                    <TableCell sx={{ fontSize: '16px' }}>
+                      <strong>Cart Code</strong>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
                       <strong>Material Code</strong>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
                       <strong>Quantity</strong>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
                       <strong>Loading Type</strong>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
                       <strong>Status</strong>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
                       <strong>Location</strong>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
                       <strong>Loaded At</strong>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ fontSize: '16px' }}>
                       <strong>Remarks</strong>
                     </TableCell>
                   </TableRow>
@@ -1059,17 +1081,26 @@ const OperatorLoading: React.FC = () => {
                 <TableBody>
                   {materialStockEntries.map((entry, index) => (
                     <TableRow key={entry.id || index}>
-                      <TableCell>{entry.trolley_code}</TableCell>
-                      <TableCell>{entry.material_code}</TableCell>
-                      <TableCell>{entry.quantity}</TableCell>
-                      <TableCell>{entry.loading_type}</TableCell>
-                      <TableCell>
+                      <TableCell sx={{ fontSize: '16px' }}>
+                        {entry.trolley_code}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '16px' }}>
+                        {entry.material_code}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '16px' }}>
+                        {entry.quantity}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '16px' }}>
+                        {entry.loading_type}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '16px' }}>
                         <Typography
                           variant="caption"
                           sx={{
                             px: 1,
                             py: 0.5,
                             borderRadius: 1,
+                            fontSize: '16px',
                             bgcolor:
                               entry.status === 'IN_STOCK'
                                 ? 'success.lighter'
@@ -1083,13 +1114,15 @@ const OperatorLoading: React.FC = () => {
                           {entry.status}
                         </Typography>
                       </TableCell>
-                      <TableCell>{entry.location_name || '-'}</TableCell>
-                      <TableCell>
+                      <TableCell sx={{ fontSize: '16px' }}>
+                        {entry.location_name || '-'}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '16px' }}>
                         {entry.loaded_at
                           ? new Date(entry.loaded_at).toLocaleString()
                           : '-'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ fontSize: '16px' }}>
                         <Typography
                           variant="caption"
                           sx={{
@@ -1098,6 +1131,7 @@ const OperatorLoading: React.FC = () => {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
+                            fontSize: '16px',
                           }}
                           title={entry.remarks}
                         >
