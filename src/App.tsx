@@ -29,7 +29,7 @@ const TrollyMaterialMapping = lazy(
 )
 const StoreLocationMaster = lazy(() => import('./pages/StoreLocationMaster'))
 const RFIDAntennaMaster = lazy(() => import('./pages/RFIDAntennaMaster'))
-const OperatorLoading = lazy(() => import('./pages/OperatorLoading'))
+const OperatorLoading = lazy(() => import('./pages/OperatorLoading/index'))
 const UserManagement = lazy(() => import('./pages/UserManagement'))
 const DeviceMaster = lazy(() => import('./pages/DeviceMaster'))
 const Profile = lazy(() => import('./pages/Profile'))

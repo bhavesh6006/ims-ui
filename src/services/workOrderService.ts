@@ -16,6 +16,7 @@ export interface WorkOrderResponse {
   disp_type: string
   input_plan: number
   output_plan: number
+  balance_quantity: number
   consumed_quantity: number
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'
   created_at: string
@@ -54,6 +55,7 @@ export interface UpdateWorkOrderPayload {
   lock1?: string
   disp_type?: string
   input_plan?: number
+  balance_quantity?: number
   output_plan?: number
   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED'
   updated_by?: string
