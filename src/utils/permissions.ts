@@ -198,6 +198,11 @@ export const canAccessApi = (
     return true
   }
 
+  // Shortcut: if the role has access to /operator-loading, allow all API calls
+  if (canView(role, '/operator-loading')) {
+    return true
+  }
+
   const matchedMapping = API_TO_PAGE_MAP.find((entry) =>
     entry.pattern.test(url)
   )
