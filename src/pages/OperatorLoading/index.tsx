@@ -312,7 +312,7 @@ const OperatorLoading: React.FC = () => {
                   qr_code: trolleyData.qr_code,
                 })
                 selectedOperatorWO.output_plan += maxQuantity
-                selectedOperatorWO.balance_quantity -= maxQuantity
+                selectedOperatorWO.balance_quantity += maxQuantity
                 await updateWorkOrderQuantitiesAndStatus()
                 showAlert('Cart loaded successfully', 'success')
                 settrolleyQRCode('')
