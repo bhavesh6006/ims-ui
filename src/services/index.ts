@@ -11,6 +11,7 @@ export { userService } from './userService'
 export { materialStockService } from './materialStockService'
 export { materialTypeService } from './materialTypeService'
 export { subtoolService } from './subtoolService'
-export { trolleyTypeService } from './trolleyTypeService'
+import trolleyTypeService from './trolleyTypeService'
+export { trolleyTypeService }
 export { trolleyConditionService } from './trolleyConditionService'
 export { deviceService } from './deviceService'

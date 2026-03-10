@@ -7,37 +7,49 @@ export interface TrolleyType {
   updated_at?: string
 }
 
-interface TrolleyTypeResponse {
-  success: boolean
-  count: number
+interface PaginatedResponse {
   data: TrolleyType[]
+  count: number
 }
 
-export const trolleyTypeService = {
-  getAll: async (): Promise<TrolleyType[]> => {
-    const response = await api.get<TrolleyTypeResponse>('/trolly-types')
-    return response.data.data
+const trolleyTypeService = {
+  getAll: async (
+    page = 1,
+    limit = 100,
+    search = ''
+  ): Promise<PaginatedResponse> => {
+    const params: Record<string, unknown> = { page, limit }
+    if (search) params.search = search
+    const response = await api.get('/trolly-types', { params })
+    // Backend returns { success, data, pagination }
+    return {
+      data: response.data.data,
+      count: response.data.pagination?.total ?? response.data.data.length,
+    }
   },
 
   getById: async (id: string): Promise<TrolleyType> => {
     const response = await api.get(`/trolly-types/${id}`)
-    return response.data
+    return response.data.data
   },
 
-  create: async (data: Partial<TrolleyType>): Promise<TrolleyType> => {
-    const response = await api.post('/trolly-types', data)
-    return response.data
+  create: async (payload: { trolly_type: string }): Promise<TrolleyType> => {
+    const response = await api.post('/trolly-types', payload)
+    return response.data.data
   },
 
   update: async (
     id: string,
-    data: Partial<TrolleyType>
+    payload: { trolly_type: string }
   ): Promise<TrolleyType> => {
-    const response = await api.put(`/trolly-types/${id}`, data)
-    return response.data
+    const response = await api.put(`/trolly-types/${id}`, payload)
+    return response.data.data
   },
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/trolly-types/${id}`)
   },
 }
+
+export { trolleyTypeService }
+export default trolleyTypeService

@@ -15,6 +15,7 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
+import CategoryIcon from '@mui/icons-material/Category'
 import { DataTable, type Column } from '../components/organisms'
 import { SearchBar, Alert } from '../components/molecules'
 import {
@@ -25,6 +26,7 @@ import {
 import type { TrolleyType } from '../services/trolleyTypeService'
 import type { TrolleyCondition } from '../services/trolleyConditionService'
 import type { Trolly } from '../types'
+import TrolleyTypeMaster from './TrolleyTypeMaster'
 
 const TrollyMaster: React.FC = () => {
   const [trollies, setTrollies] = useState<Trolly[]>([])
@@ -44,6 +46,7 @@ const TrollyMaster: React.FC = () => {
     severity: 'success' as 'success' | 'error',
   })
   const [loading, setLoading] = useState(false)
+  const [trolleyTypesOpen, setTrolleyTypesOpen] = useState(false)
 
   interface FormErrors {
     trollyCode?: string
@@ -77,7 +80,7 @@ const TrollyMaster: React.FC = () => {
     { id: 'trolley_code', label: 'Cart Code' },
     {
       id: 'trolly_type',
-      label: 'Type',
+      label: 'Cart Type',
       format: (value: unknown) => String(value || '-'),
     },
     {
@@ -142,9 +145,8 @@ const TrollyMaster: React.FC = () => {
 
   const loadTrolleyTypes = useCallback(async () => {
     try {
-      const types = await trolleyTypeService.getAll()
-      // Sort alphabetically by trolly_type
-      const sortedTypes = types.sort((a, b) =>
+      const response = await trolleyTypeService.getAll()
+      const sortedTypes = response.data.sort((a, b) =>
         a.trolly_type.localeCompare(b.trolly_type)
       )
       setTrolleyTypes(sortedTypes)
@@ -182,7 +184,7 @@ const TrollyMaster: React.FC = () => {
     }
 
     if (!formData.trollyTypeId) {
-      newErrors.trollyTypeId = 'Type is required'
+      newErrors.trollyTypeId = 'Cart Type is required'
     }
 
     if (!formData.trollyConditionId) {
@@ -294,7 +296,7 @@ const TrollyMaster: React.FC = () => {
       return
     }
     if (!formData.trollyTypeId) {
-      showAlert('Type is required', 'error')
+      showAlert('Cart Type is required', 'error')
       return
     }
     if (!formData.trollyConditionId) {
@@ -358,13 +360,32 @@ const TrollyMaster: React.FC = () => {
     }
   }
 
+  const handleTrolleyTypesClose = () => {
+    setTrolleyTypesOpen(false)
+    loadTrolleyTypes()
+    loadTrollies()
+  }
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Cart Master</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
-          Add Cart
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<CategoryIcon />}
+            onClick={() => setTrolleyTypesOpen(true)}
+          >
+            Manage Cart Types
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAdd}
+          >
+            Add Cart
+          </Button>
+        </Box>
       </Box>
 
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
@@ -439,7 +460,7 @@ const TrollyMaster: React.FC = () => {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Type"
+                  label=" Cart Type"
                   required
                   error={Boolean(errors.trollyTypeId)}
                   helperText={errors.trollyTypeId}
@@ -740,6 +761,15 @@ const TrollyMaster: React.FC = () => {
         message={alert.message}
         severity={alert.severity}
         onClose={() => setAlert({ ...alert, open: false })}
+      />
+
+      <TrolleyTypeMaster
+        open={trolleyTypesOpen}
+        onClose={handleTrolleyTypesClose}
+        onRefresh={() => {
+          loadTrolleyTypes()
+          loadTrollies()
+        }}
       />
     </Box>
   )
