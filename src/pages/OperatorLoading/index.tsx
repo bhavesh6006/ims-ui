@@ -223,7 +223,6 @@ const OperatorLoading: React.FC = () => {
     await workOrderService.update(selectedOperatorWO.id, {
       status: newStatus,
       output_plan: selectedOperatorWO.output_plan,
-      balance_quantity: selectedOperatorWO.balance_quantity,
     })
     setSelectedOperatorWO({ ...selectedOperatorWO, status: newStatus })
     showAlert(`Work order updated: Status - ${newStatus}`, 'success')
@@ -312,7 +311,6 @@ const OperatorLoading: React.FC = () => {
                   qr_code: trolleyData.qr_code,
                 })
                 selectedOperatorWO.output_plan += maxQuantity
-                selectedOperatorWO.balance_quantity += maxQuantity
                 await updateWorkOrderQuantitiesAndStatus()
                 showAlert('Cart loaded successfully', 'success')
                 settrolleyQRCode('')
@@ -448,7 +446,6 @@ const OperatorLoading: React.FC = () => {
 
       if (quantityDiff !== 0) {
         selectedOperatorWO.output_plan += quantityDiff
-        selectedOperatorWO.balance_quantity -= quantityDiff
       }
 
       const updateResponse = await materialStockService.updateStock(
@@ -471,8 +468,6 @@ const OperatorLoading: React.FC = () => {
         }
         showAlert('Record updated successfully', 'success')
       } else {
-        selectedOperatorWO.output_plan -= quantityDiff
-        selectedOperatorWO.balance_quantity += quantityDiff
         showAlert('Failed to update record', 'error')
       }
     } catch (error) {
