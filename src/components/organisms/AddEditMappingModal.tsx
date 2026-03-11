@@ -94,8 +94,8 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
         materialService.getAll(1, 100),
       ])
 
-      setTrolleyTypes(trolleyTypesRes || [])
-      setMaterials(materialsRes.data || [])
+      setTrolleyTypes(trolleyTypesRes?.data || [])
+      setMaterials(materialsRes?.data || [])
     } catch (error) {
       console.error('Failed to load dropdown data', error)
       setTrolleyTypes([])
