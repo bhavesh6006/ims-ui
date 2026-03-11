@@ -401,7 +401,7 @@ const OperatorLoading: React.FC = () => {
   const handleEditRecord = async (record: MaterialStockEntry) => {
     setEditingRecord(record)
     setOriginalEditQuantity(record.quantity)
-    setEditDialogOpen(true)
+    // Don't open dialog yet — wait for mapping to load first
     try {
       const materialResponse = await materialService.getByCode(
         selectedOperatorWO?.sub_tool || ''
@@ -420,6 +420,9 @@ const OperatorLoading: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to fetch mapping on edit dialog open:', error)
+    } finally {
+      // Open dialog only after mappedQuantity is set
+      setEditDialogOpen(true)
     }
   }
 
