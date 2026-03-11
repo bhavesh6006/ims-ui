@@ -91,7 +91,10 @@ const OperatorLoading: React.FC = () => {
   const fetchLastRefreshDate = async () => {
     try {
       const response = await workOrderService.getLastRefreshDate()
-      setLastRefreshDate(response?.last_refresh || '')
+      const refreshTimestamp = response?.last_refresh
+        ? convertToLocalTime(response.last_refresh)
+        : ''
+      setLastRefreshDate(refreshTimestamp)
     } catch (error) {
       console.error('Failed to fetch last refresh date:', error)
     }
