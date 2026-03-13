@@ -41,10 +41,10 @@ const EditRecordDialog: React.FC<EditRecordDialogProps> = ({
       <DialogTitle>Edit Record</DialogTitle>
       <DialogContent dividers>
         <Typography variant="body2" sx={{ mb: 2 }}>
-          Cart Code: <strong>{editingRecord.trolley_code}</strong>
+          Cart Code: <strong>{editingRecord.trolley_qr_code}</strong>
         </Typography>
         <Typography variant="body2" sx={{ mb: 2 }}>
-          Material Code: <strong>{editingRecord.material_code}</strong>
+          Sub Tool: <strong>{editingRecord.material_code}</strong>
         </Typography>
         {mappedQuantity > 0 && (
           <Typography variant="body2" sx={{ mb: 2 }} color="info.main">

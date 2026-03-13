@@ -96,8 +96,11 @@ const LoadingDialog: React.FC<LoadingDialogProps> = ({
           </Typography>
           <Typography variant="body2">
             Tool: {selectedOperatorWO.tool} | Material Code:{' '}
-            <strong>{selectedOperatorWO.sub_tool}</strong> | Date:{' '}
-            {selectedOperatorWO.date}
+            <strong>{selectedOperatorWO.sub_tool}</strong> | Door Colour:{' '}
+            {selectedOperatorWO.door_colour} | Handle:{' '}
+            {selectedOperatorWO.handle} | Micon: {selectedOperatorWO.micom} |
+            Lock Type: {selectedOperatorWO.lock1} | Disp Type:{' '}
+            {selectedOperatorWO.disp_type} | Date: {selectedOperatorWO.date}
           </Typography>
           <Typography variant="body2">
             Planned: {selectedOperatorWO.input_plan} | Current Output:{' '}
@@ -162,7 +165,7 @@ const LoadingDialog: React.FC<LoadingDialogProps> = ({
               <TableRow>
                 {[
                   'Cart Code',
-                  'Material Code',
+                  'Sub Tool',
                   'Quantity',
                   'Loading Type',
                   'Status',
@@ -207,7 +210,7 @@ const LoadingDialog: React.FC<LoadingDialogProps> = ({
               ) : (
                 materialStockEntries.map((entry, index) => (
                   <TableRow key={entry.id || index}>
-                    <TableCell>{entry.trolley_code}</TableCell>
+                    <TableCell>{entry.trolley_qr_code}</TableCell>
                     <TableCell>{entry.material_code}</TableCell>
                     <TableCell>{entry.quantity}</TableCell>
                     <TableCell>{entry.loading_type}</TableCell>
@@ -267,7 +270,7 @@ const LoadingDialog: React.FC<LoadingDialogProps> = ({
           startIcon={<CancelIcon />}
           onClick={onClose}
         >
-          Cancel
+          Close
         </Button>
       </DialogActions>
     </Dialog>

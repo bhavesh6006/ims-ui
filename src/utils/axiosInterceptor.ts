@@ -6,6 +6,7 @@ interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
 }
 
 let isRefreshing = false
+let isRedirecting = false
 let failedQueue: {
   resolve: (token: string | null) => void
   reject: (error: unknown) => void
@@ -19,17 +20,24 @@ const processQueue = (error: unknown, token: string | null = null) => {
       prom.resolve(token)
     }
   })
-
   failedQueue = []
+}
+
+const forceLogout = () => {
+  if (isRedirecting) return
+  isRedirecting = true
+  isRefreshing = false
+  failedQueue = []
+  localStorage.clear()
+  window.location.href = '/login'
 }
 
 export const setupAxiosInterceptors = () => {
   // Request interceptor
   axios.interceptors.request.use(
     (config) => {
-      // Only set the global Authorization header if the request is not for /auth/refresh
       if (!config.url?.includes('/auth/refresh')) {
-        const token = localStorage.getItem('token') // Use the access token for normal requests
+        const token = localStorage.getItem('token')
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
@@ -51,11 +59,15 @@ export const setupAxiosInterceptors = () => {
         | CustomAxiosRequestConfig
         | undefined
 
-      // Handle 401 errors with token refresh
+      // Skip token refresh for auth endpoints (login, register, etc.)
+      const isAuthEndpoint = originalRequest?.url?.includes('/auth/')
+
+      // Handle 401 errors with token refresh — but NOT for auth endpoints
       if (
         error.response?.status === 401 &&
         originalRequest &&
-        !originalRequest._retry
+        !originalRequest._retry &&
+        !isAuthEndpoint
       ) {
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
@@ -73,16 +85,14 @@ export const setupAxiosInterceptors = () => {
         originalRequest._retry = true
         isRefreshing = true
 
-        const refreshToken = localStorage.getItem('refresh_token') // Use the refresh token
+        const refreshToken = localStorage.getItem('refresh_token')
         if (!refreshToken) {
           console.warn('No refresh token found. Redirecting to login.')
-          localStorage.clear()
-          window.location.href = '/login'
+          forceLogout()
           return Promise.reject(error)
         }
 
         try {
-          console.log('Refreshing token...')
           const response = await axios.post<{
             token: string
             refreshToken: string
@@ -91,16 +101,14 @@ export const setupAxiosInterceptors = () => {
             {},
             {
               headers: {
-                Authorization: `Bearer ${refreshToken}`, // Explicitly use the refresh token
+                Authorization: `Bearer ${refreshToken}`,
               },
             }
           )
 
           const { token: newToken, refreshToken: newRefreshToken } =
             response.data
-          console.log('New tokens received:', { newToken, newRefreshToken })
 
-          // Update both the access token and the refresh token in localStorage
           localStorage.setItem('token', newToken)
           localStorage.setItem('refresh_token', newRefreshToken)
 
@@ -113,23 +121,24 @@ export const setupAxiosInterceptors = () => {
         } catch (refreshError) {
           console.error('Failed to refresh token:', refreshError)
           processQueue(refreshError, null)
-          isRefreshing = false
-          localStorage.clear()
-          window.location.href = '/login'
+          forceLogout()
           return Promise.reject(refreshError)
         }
       }
 
       // Handle session timeout
-      if (
-        error.response?.status === 403 &&
-        error.response?.data?.code === 'SESSION_EXPIRED'
-      ) {
-        console.warn('Session expired. Redirecting to login.')
-        localStorage.clear()
-        window.location.href = '/login'
+      if (error.response?.status === 403) {
+        const responseData = error.response?.data as
+          | { code?: string }
+          | undefined
+        if (responseData?.code === 'SESSION_EXPIRED') {
+          console.warn('Session expired. Redirecting to login.')
+          forceLogout()
+          return Promise.reject(error)
+        }
       }
 
+      // For auth endpoints or other errors, just reject so the caller handles it
       return Promise.reject(error)
     }
   )

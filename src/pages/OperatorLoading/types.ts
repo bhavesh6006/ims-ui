@@ -1,6 +1,7 @@
 export interface MaterialStockEntry {
   id?: number
   trolley_code: string
+  trolley_qr_code?: string
   material_code: string
   quantity: number | null
   loading_type: 'FULL' | 'PARTIAL'

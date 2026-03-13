@@ -45,10 +45,26 @@ const Login: React.FC = () => {
     try {
       await login(username, password)
       navigate('/dashboard')
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : 'An unexpected error occurred'
-      setError(message || 'Login failed. Please check your credentials.')
+    } catch (err: unknown) {
+      let message = 'Login failed. Please check your credentials.'
+
+      if (err instanceof Error) {
+        message = err.message
+      } else if (err && typeof err === 'object') {
+        const e = err as {
+          response?: { data?: { message?: string; error?: string } }
+          message?: string
+        }
+        message =
+          e.response?.data?.message ||
+          e.response?.data?.error ||
+          e.message ||
+          message
+      } else if (typeof err === 'string') {
+        message = err
+      }
+
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -102,7 +118,10 @@ const Login: React.FC = () => {
                 label="Username"
                 variant="outlined"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value)
+                  if (error) setError('')
+                }}
                 margin="normal"
                 required
                 autoFocus
@@ -114,7 +133,10 @@ const Login: React.FC = () => {
                 type="password"
                 variant="outlined"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  if (error) setError('')
+                }}
                 margin="normal"
                 required
                 disabled={loading}

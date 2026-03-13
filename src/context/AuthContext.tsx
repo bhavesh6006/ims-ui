@@ -47,16 +47,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const timeoutId = localStorage.getItem('inactivityTimeoutId')
     if (timeoutId) {
       clearTimeout(Number(timeoutId))
+      localStorage.removeItem('inactivityTimeoutId')
     }
+
+    const currentToken = localStorage.getItem('token')
+    const currentSession = localStorage.getItem('sessionId')
+    if (!currentToken || !currentSession) return
 
     const newTimeoutId = setTimeout(() => {
       console.log('User logged out due to inactivity')
-      logout()
+      localStorage.clear()
       window.location.href = '/login'
     }, INACTIVITY_TIMEOUT)
 
     localStorage.setItem('inactivityTimeoutId', String(newTimeoutId))
-  }, [logout])
+  }, [])
 
   // Token refresh function
   const refreshToken = useCallback(async () => {
@@ -107,10 +112,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [sessionId, logout])
 
-  // Periodically check session validity
+  // Periodically check session validity — only when authenticated
   useEffect(() => {
+    if (!token || !sessionId) return
+
     const interval = setInterval(() => {
-      if (token && sessionId && !isSessionValid()) {
+      if (!isSessionValid()) {
         console.log('Session invalidated: Session ID mismatch')
         logout()
         window.location.href = '/login'
@@ -169,30 +176,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('sessionId', newSessionId)
   }
 
-  // Handle user activity
+  // Handle user activity — only when authenticated
+  // Separate from token refresh to avoid resetting inactivity on token refresh
   useEffect(() => {
+    if (!token || !sessionId) return
+
+    let lastActivity = Date.now()
+
     const handleUserActivity = () => {
-      resetInactivityTimer()
+      const now = Date.now()
+      if (now - lastActivity > 30000) {
+        lastActivity = now
+        resetInactivityTimer()
+      }
     }
 
     window.addEventListener('mousemove', handleUserActivity)
     window.addEventListener('keydown', handleUserActivity)
     window.addEventListener('click', handleUserActivity)
 
-    resetInactivityTimer()
-
     return () => {
       window.removeEventListener('mousemove', handleUserActivity)
       window.removeEventListener('keydown', handleUserActivity)
       window.removeEventListener('click', handleUserActivity)
+    }
+    // Only depend on truthiness, not the actual token value
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!token, !!sessionId, resetInactivityTimer])
 
+  // Start inactivity timer once on login
+  useEffect(() => {
+    if (!token || !sessionId) return
+
+    resetInactivityTimer()
+
+    return () => {
       const timeoutId = localStorage.getItem('inactivityTimeoutId')
       if (timeoutId) {
         clearTimeout(Number(timeoutId))
         localStorage.removeItem('inactivityTimeoutId')
       }
     }
-  }, [resetInactivityTimer])
+    // Only run when auth state changes from null to value (login) or value to null (logout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!token, !!sessionId])
 
   const value: AuthContextType = {
     user,
