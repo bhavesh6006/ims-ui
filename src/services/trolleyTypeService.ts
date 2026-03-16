@@ -29,7 +29,7 @@ const trolleyTypeService = {
   },
 
   getById: async (id: string): Promise<TrolleyType> => {
-    const response = await api.get(`/trolly-types/${id}`)
+    const response = await api.get(`/trolly-types/${encodeURIComponent(id)}`)
     return response.data.data
   },
 

@@ -84,7 +84,7 @@ export const antennaService = {
 
   getByDevice: async (deviceId: number) => {
     const response = await api.get<AntennaResponse>(
-      `/antennas/device/${deviceId}`
+      `/antennas/device/${encodeURIComponent(deviceId)}`
     )
     return response.data
   },
@@ -96,7 +96,7 @@ export const antennaService = {
 
   getById: async (id: number) => {
     const response = await api.get<{ success: boolean; data: Antenna }>(
-      `/antennas/${id}`
+      `/antennas/${encodeURIComponent(id)}`
     )
     return response.data
   },

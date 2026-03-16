@@ -35,7 +35,9 @@ export const mappingService = {
 
   // Get mapping by ID
   getById: async (id: string) => {
-    const response = await api.get<TrollyMaterialMapping>(`/mappings/${id}`)
+    const response = await api.get<TrollyMaterialMapping>(
+      `/mappings/${encodeURIComponent(id)}`
+    )
     return response.data
   },
 

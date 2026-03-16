@@ -93,12 +93,12 @@ export const deviceService = {
   },
 
   async getById(id: number) {
-    const response = await api.get(`/devices/${id}`)
+    const response = await api.get(`/devices/${encodeURIComponent(id)}`)
     return response.data
   },
 
   async getByIp(ip: string) {
-    const response = await api.get(`/devices/ip/${ip}`)
+    const response = await api.get(`/devices/ip/${encodeURIComponent(ip)}`)
     return response.data
   },
 

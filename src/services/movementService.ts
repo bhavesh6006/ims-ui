@@ -26,14 +26,16 @@ export const movementService = {
 
   // Get movement by ID
   getById: async (id: string) => {
-    const response = await api.get<InventoryMovement>(`/movements/${id}`)
+    const response = await api.get<InventoryMovement>(
+      `/movements/${encodeURIComponent(id)}`
+    )
     return response.data
   },
 
   // Get movements by trolly
   getByTrolly: async (trollyId: string) => {
     const response = await api.get<InventoryMovement[]>(
-      `/movements/trolly/${trollyId}`
+      `/movements/trolly/${encodeURIComponent(trollyId)}`
     )
     return response.data
   },
@@ -41,7 +43,7 @@ export const movementService = {
   // Get movements by location
   getByLocation: async (locationId: string) => {
     const response = await api.get<InventoryMovement[]>(
-      `/movements/location/${locationId}`
+      `/movements/location/${encodeURIComponent(locationId)}`
     )
     return response.data
   },
@@ -55,7 +57,7 @@ export const movementService = {
   // Get movements by date range
   getByDateRange: async (startDate: string, endDate: string) => {
     const response = await api.get<ApiResponse<InventoryMovement[]>>(
-      `/movements/date-range?startDate=${startDate}&endDate=${endDate}`
+      `/movements/date-range?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
     )
     return response.data
   },
@@ -63,7 +65,7 @@ export const movementService = {
   // Get movements by type
   getByType: async (movementType: 'Entry' | 'Exit' | 'Internal Transfer') => {
     const response = await api.get<ApiResponse<InventoryMovement[]>>(
-      `/movements/type/${movementType}`
+      `/movements/type/${encodeURIComponent(movementType)}`
     )
     return response.data
   },
@@ -71,7 +73,7 @@ export const movementService = {
   // Get movements by detection method
   getByDetectionMethod: async (detectedBy: 'RFID' | 'BLE' | 'Manual') => {
     const response = await api.get<ApiResponse<InventoryMovement[]>>(
-      `/movements/detected-by/${detectedBy}`
+      `/movements/detected-by/${encodeURIComponent(detectedBy)}`
     )
     return response.data
   },
@@ -108,21 +110,21 @@ export const movementService = {
         currentLocation: string
         timestamp: string
       }>
-    >(`/movements/trolly/${trollyId}/location`)
+    >(`/movements/trolly/${encodeURIComponent(trollyId)}/location`)
     return response.data
   },
 
   // Get movements through specific gate/antenna
   getByGate: async (gateId: string) => {
     const response = await api.get<ApiResponse<InventoryMovement[]>>(
-      `/movements/gate/${gateId}`
+      `/movements/gate/${encodeURIComponent(gateId)}`
     )
     return response.data
   },
 
   getByAntenna: async (antennaId: string) => {
     const response = await api.get<ApiResponse<InventoryMovement[]>>(
-      `/movements/antenna/${antennaId}`
+      `/movements/antenna/${encodeURIComponent(antennaId)}`
     )
     return response.data
   },

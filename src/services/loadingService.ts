@@ -32,7 +32,7 @@ export const loadingService = {
   // Get work order details (quantity, door types, classification, orientation)
   getWorkOrderDetails: async (workOrderId: string) => {
     const response = await api.get<ApiResponse<WorkOrder>>(
-      `/loading/work-orders/${workOrderId}`
+      `/loading/work-orders/${encodeURIComponent(workOrderId)}`
     )
     return response.data
   },
@@ -99,7 +99,7 @@ export const loadingService = {
   // Get loading transactions by trolly
   getLoadingsByTrolly: async (trollyId: string) => {
     const response = await api.get<ApiResponse<TrolleyLoading[]>>(
-      `/loading/transactions/trolly/${trollyId}`
+      `/loading/transactions/trolly/${encodeURIComponent(trollyId)}`
     )
     return response.data
   },
@@ -107,7 +107,7 @@ export const loadingService = {
   // Get loading transactions by operator
   getLoadingsByOperator: async (operatorId: string) => {
     const response = await api.get<ApiResponse<TrolleyLoading[]>>(
-      `/loading/transactions/operator/${operatorId}`
+      `/loading/transactions/operator/${encodeURIComponent(operatorId)}`
     )
     return response.data
   },

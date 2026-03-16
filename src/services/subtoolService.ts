@@ -14,7 +14,7 @@ export const subtoolService = {
   },
 
   getById: async (id: string): Promise<Subtool> => {
-    const response = await api.get(`/subtools/${id}`)
+    const response = await api.get(`/subtools/${encodeURIComponent(id)}`)
     return response.data
   },
 

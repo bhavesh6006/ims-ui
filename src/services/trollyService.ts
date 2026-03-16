@@ -22,13 +22,17 @@ export const trollyService = {
 
   // Get trolly by ID
   getById: async (id: string): Promise<Trolly> => {
-    const response = await api.get<Trolly>(`/trollies/${id}`)
+    const response = await api.get<Trolly>(
+      `/trollies/${encodeURIComponent(id)}`
+    )
     return response.data
   },
 
   // Scan trolly by barcode or QR code
   scan: async (code: string): Promise<{ data: Trolly }> => {
-    const response = await api.get<Trolly>(`/trollies/scan/${code}`)
+    const response = await api.get<Trolly>(
+      `/trollies/scan/${encodeURIComponent(code)}`
+    )
     return { data: response.data }
   },
 

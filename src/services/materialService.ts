@@ -22,7 +22,9 @@ export const materialService = {
 
   // Get material by ID
   getById: async (id: string) => {
-    const response = await api.get<Material>(`/materials/${id}`)
+    const response = await api.get<Material>(
+      `/materials/${encodeURIComponent(id)}`
+    )
     return response.data
   },
 

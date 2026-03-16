@@ -110,7 +110,7 @@ const workOrderService = {
 
   // Get single work order by ID
   getById: async (id: string): Promise<ApiResponse<WorkOrderResponse>> => {
-    const response = await api.get(`/work-orders/${id}`)
+    const response = await api.get(`/work-orders/${encodeURIComponent(id)}`)
     return response.data
   },
 }

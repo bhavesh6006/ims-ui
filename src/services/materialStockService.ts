@@ -48,14 +48,16 @@ export const materialStockService = {
 
   // Get stock by ID
   getById: async (id: string) => {
-    const response = await api.get<MaterialStock>(`/material-stock/${id}`)
+    const response = await api.get<MaterialStock>(
+      `/material-stock/${encodeURIComponent(id)}`
+    )
     return response.data
   },
 
   // Get stock by material code
   getByMaterialCode: async (materialCode: string) => {
     const response = await api.get<MaterialStock[]>(
-      `/material-stock/material/${materialCode}`
+      `/material-stock/material/${encodeURIComponent(materialCode)}`
     )
     return response.data
   },
@@ -63,7 +65,7 @@ export const materialStockService = {
   // Get stock by trolley code
   getByTrolleyCode: async (trolleyCode: string) => {
     const response = await api.get<MaterialStock[]>(
-      `/material-stock/trolley/${trolleyCode}`
+      `/material-stock/trolley/${encodeURIComponent(trolleyCode)}`
     )
     return response.data
   },
@@ -71,7 +73,7 @@ export const materialStockService = {
   // Get stock by location
   getByLocation: async (location: string) => {
     const response = await api.get<MaterialStock[]>(
-      `/material-stock/location/${location}`
+      `/material-stock/location/${encodeURIComponent(location)}`
     )
     return response.data
   },
@@ -132,14 +134,14 @@ export const materialStockService = {
         quantity: number
         trolleyCount: number
       }>
-    }>(`/material-stock/summary/${materialCode}`)
+    }>(`/material-stock/summary/${encodeURIComponent(materialCode)}`)
     return response.data
   },
 
   // Get stock by work order
   getByWorkOrder: async (workOrderId: string) => {
     const response = await api.get<MaterialStock[]>(
-      `/material-stock/work-order/${workOrderId}`
+      `/material-stock/work-order/${encodeURIComponent(workOrderId)}`
     )
     return response.data
   },

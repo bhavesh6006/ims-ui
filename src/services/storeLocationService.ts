@@ -38,7 +38,7 @@ export const storeLocationService = {
   },
 
   async getById(id: string) {
-    const response = await api.get(`/store-locations/${id}`)
+    const response = await api.get(`/store-locations/${encodeURIComponent(id)}`)
     return response.data
   },
 
