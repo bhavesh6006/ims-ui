@@ -283,7 +283,6 @@ const OperatorLoading: React.FC = () => {
               }
               const materialStockPayload: MaterialStockEntry = {
                 trolley_code: trolleyData.trolley_code,
-                qr_code: trolleyData.trolley_qr_code,
                 material_code: selectedOperatorWO.sub_tool,
                 quantity: maxQuantity,
                 loading_type: 'FULL',
@@ -300,7 +299,11 @@ const OperatorLoading: React.FC = () => {
                 setMaterialStockEntries((prevEntries) =>
                   [
                     ...[
-                      { ...materialStockPayload, id: saveResponse.data.id },
+                      {
+                        ...materialStockPayload,
+                        trolley_qr_code: code,
+                        id: saveResponse.data.id,
+                      },
                       ...prevEntries,
                     ],
                   ].sort(
