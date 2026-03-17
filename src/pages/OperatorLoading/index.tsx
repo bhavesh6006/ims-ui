@@ -240,7 +240,18 @@ const OperatorLoading: React.FC = () => {
       status: newStatus,
       output_plan: selectedOperatorWO.output_plan,
     })
-    setSelectedOperatorWO({ ...selectedOperatorWO, status: newStatus })
+    const updatedWO = { ...selectedOperatorWO, status: newStatus }
+    setSelectedOperatorWO(updatedWO)
+
+    // Also update the main work orders list so the table reflects changes
+    setOperatorWorkOrders((prev) =>
+      prev.map((wo) =>
+        wo.id === updatedWO.id
+          ? { ...wo, output_plan: updatedWO.output_plan, status: newStatus }
+          : wo
+      )
+    )
+
     showAlert(`Work order updated: Status - ${newStatus}`, 'success')
 
     if (selectedOperatorWO.status === 'CLOSED' && newStatus === 'IN_PROGRESS') {
@@ -481,7 +492,17 @@ const OperatorLoading: React.FC = () => {
           String(materialData),
           String(trolleyData.trolly_type_id)
         )
-        if (success && maxQuantity) setMappedQuantity(maxQuantity)
+        if (success && maxQuantity) {
+          setMappedQuantity(maxQuantity)
+          // Properly initialize the editing record based on its loading type
+          // If quantity equals maxQuantity, treat as FULL; otherwise PARTIAL
+          const isFullLoad = record.quantity === maxQuantity
+          setEditingRecord({
+            ...record,
+            loading_type: isFullLoad ? 'FULL' : 'PARTIAL',
+            quantity: record.quantity,
+          })
+        }
       }
     } catch (error) {
       console.error('Failed to fetch mapping on edit dialog open:', error)
@@ -537,6 +558,8 @@ const OperatorLoading: React.FC = () => {
         if (quantityDiff !== 0) {
           await updateWorkOrderQuantitiesAndStatus()
         }
+        // Refresh the work orders list to reflect changes in the main table
+        await fetchWorkOrders()
         showAlert('Record updated successfully', 'success')
       } else {
         showAlert('Failed to update record', 'error')
