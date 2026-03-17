@@ -412,7 +412,7 @@ const OperatorLoading: React.FC = () => {
       )
       const materialData =
         materialResponse.data?.material_id || materialResponse.material_id
-      const trolleyResponse = await trollyService.scan(record.trolley_code)
+      const trolleyResponse = await trollyService.scan(record.trolley_qr_code)
       const trolleyData =
         trolleyResponse.data && (trolleyResponse.data.data as Trolly)
       if (materialData && trolleyData?.trolly_type_id) {
