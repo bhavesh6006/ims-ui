@@ -15,4 +15,5 @@ export interface MaterialStockEntry {
   created_at?: string
   updated_at?: string
   location_name?: string
+  mapping_group_id?: string | null
 }

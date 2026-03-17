@@ -20,6 +20,8 @@ import type { MaterialStockEntry } from './types'
 import WorkOrderTable from './WorkOrderTable'
 import LoadingDialog from './LoadingDialog'
 import EditRecordDialog from './EditRecordDialog'
+import { useSocketEvent } from '../../hooks/useSocketEvent'
+import { joinWorkOrder, leaveWorkOrder } from '../../services/socketService'
 
 const OperatorLoading: React.FC = () => {
   const [operatorWorkOrders, setOperatorWorkOrders] = useState<
@@ -72,6 +74,18 @@ const OperatorLoading: React.FC = () => {
       .format('YYYY-MM-DD hh:mm:ss A')
   }
 
+  const fetchLastRefreshDate = useCallback(async () => {
+    try {
+      const response = await workOrderService.getLastRefreshDate()
+      const refreshTimestamp = response?.last_refresh
+        ? convertToLocalTime(response.last_refresh)
+        : ''
+      setLastRefreshDate(refreshTimestamp)
+    } catch (error) {
+      console.error('Failed to fetch last refresh date:', error)
+    }
+  }, [])
+
   const fetchWorkOrders = useCallback(async () => {
     try {
       setLoading(true)
@@ -86,24 +100,12 @@ const OperatorLoading: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }, [])
-
-  const fetchLastRefreshDate = async () => {
-    try {
-      const response = await workOrderService.getLastRefreshDate()
-      const refreshTimestamp = response?.last_refresh
-        ? convertToLocalTime(response.last_refresh)
-        : ''
-      setLastRefreshDate(refreshTimestamp)
-    } catch (error) {
-      console.error('Failed to fetch last refresh date:', error)
-    }
-  }
+  }, [fetchLastRefreshDate])
 
   useEffect(() => {
     fetchWorkOrders()
-    fetchLastRefreshDate()
   }, [fetchWorkOrders])
+
   useEffect(() => {
     setPage(0)
   }, [activeTab])
@@ -135,6 +137,13 @@ const OperatorLoading: React.FC = () => {
     workOrder: WorkOrderResponse,
     isClosed: boolean
   ) => {
+    // Leave previous room
+    if (selectedOperatorWO) {
+      leaveWorkOrder(selectedOperatorWO.id)
+    }
+    // Join new room
+    joinWorkOrder(workOrder.id)
+
     setSelectedOperatorWO(workOrder)
     setShowLoadingDialog(true)
     settrolleyQRCode('')
@@ -160,13 +169,17 @@ const OperatorLoading: React.FC = () => {
     if (!isClosed) setTimeout(() => trolleyInputRef.current?.focus(), 300)
   }
 
-  const handleCancelLoading = () => {
+  const handleCancelLoading = useCallback(() => {
+    // Leave room when closing dialog
+    if (selectedOperatorWO) {
+      leaveWorkOrder(selectedOperatorWO.id)
+    }
     setShowLoadingDialog(false)
     setSelectedOperatorWO(null)
     settrolleyQRCode('')
     setMappedQuantity(0)
     setDialogMessage(null)
-  }
+  }, [selectedOperatorWO])
 
   const fetchMaterialTrolleyMapping = async (
     materialId: string,
@@ -196,8 +209,8 @@ const OperatorLoading: React.FC = () => {
     } catch (error: unknown) {
       const errorMessage =
         error && typeof error === 'object' && 'response' in error
-          ? (error.response as { data?: { message?: string } })?.data
-              ?.message ||
+          ? (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message ||
             'No mapping found for this material-cart type combination'
           : 'No mapping found for this material-cart type combination'
       setDialogMessage({ text: errorMessage, severity: 'error' })
@@ -234,7 +247,7 @@ const OperatorLoading: React.FC = () => {
       handleCancelLoading()
       await fetchWorkOrders()
     }
-  }, [selectedOperatorWO, fetchWorkOrders])
+  }, [selectedOperatorWO, fetchWorkOrders, handleCancelLoading])
 
   const processTrolleyScan = useCallback(
     async (code: string): Promise<void> => {
@@ -254,15 +267,46 @@ const OperatorLoading: React.FC = () => {
           setScanning(false)
           return
         }
-        if (trolleyData.is_occupied) {
+
+        // Allow PARTIAL_LOADED trolleys (for group loading), block only FULL_LOADED
+        const loadingStatus =
+          (trolleyData as Trolly & { loading_status?: string })
+            .loading_status || 'EMPTY'
+        if (trolleyData.is_occupied && loadingStatus === 'FULL_LOADED') {
+          // Fetch what material is loaded on this trolley
+          let loadedMaterialInfo = ''
+          try {
+            const stockResponse = await materialStockService.getByTrolleyCode(
+              trolleyData.trolley_code
+            )
+            const stockData = stockResponse?.data || stockResponse
+            if (Array.isArray(stockData) && stockData.length > 0) {
+              const activeMaterials = stockData
+                .filter(
+                  (s: MaterialStockEntry) =>
+                    s.status === 'IN_STOCK' || s.status === 'IN_TRANSIT'
+                )
+                .map((s: MaterialStockEntry) => s.material_code)
+              loadedMaterialInfo =
+                activeMaterials.length > 0
+                  ? activeMaterials.join(', ')
+                  : 'Unknown'
+            } else {
+              loadedMaterialInfo = 'Unknown'
+            }
+          } catch {
+            loadedMaterialInfo = 'Unknown'
+          }
+
           setDialogMessage({
-            text: `Cart/Container already occupied with ID: ${code}`,
+            text: `${code}: Cart/Container already occupied with Material: ${loadedMaterialInfo}`,
             severity: 'error',
           })
           setTimeout(() => trolleyInputRef.current?.focus(), 100)
           setScanning(false)
           return
         }
+
         const trolleyTypeId = trolleyData.trolly_type_id
         if (selectedOperatorWO?.sub_tool && trolleyTypeId) {
           try {
@@ -272,58 +316,70 @@ const OperatorLoading: React.FC = () => {
             const materialData =
               materialResponse.data?.material_id || materialResponse.material_id
             if (materialData) {
-              const { success, maxQuantity } =
-                await fetchMaterialTrolleyMapping(
-                  String(materialData),
-                  String(trolleyTypeId)
-                )
-              if (!success || maxQuantity <= 0) {
-                setScanning(false)
-                return
-              }
-              const materialStockPayload: MaterialStockEntry = {
+              // Send group-aware fields so backend uses loadingService
+              const loadResult = await materialStockService.createStock({
                 trolley_code: trolleyData.trolley_code,
+                trolley_id: trolleyData.trolley_id,
+                trolley_type_id: String(trolleyTypeId),
                 material_code: selectedOperatorWO.sub_tool,
-                quantity: maxQuantity,
-                loading_type: 'FULL',
-                status: 'IN_STOCK',
-                loaded_at: new Date().toISOString(),
-                remarks: `Loaded in cart ${trolleyData.trolley_code} (${trolleyData.trolly_type})`,
+                material_id: String(materialData),
                 work_order_id: selectedOperatorWO.id,
                 work_order_number: selectedOperatorWO.work_order_number,
+                qr_code: trolleyData.qr_code,
                 loaded_by: 'current-user-id',
-              }
-              const saveResponse =
-                await materialStockService.createStock(materialStockPayload)
-              if (saveResponse.success) {
+              })
+
+              if (loadResult.success) {
+                const loadedQty = loadResult.data.quantity
+                setMappedQuantity(loadedQty)
+
+                const newEntry: MaterialStockEntry = {
+                  id: loadResult.data.id,
+                  trolley_code: loadResult.data.trolley_code,
+                  trolley_qr_code: code,
+                  material_code: loadResult.data.material_code,
+                  quantity: loadResult.data.quantity,
+                  loading_type: loadResult.data.loading_type,
+                  status: loadResult.data.status,
+                  loaded_at: new Date().toISOString(),
+                  work_order_id: selectedOperatorWO.id,
+                  work_order_number: selectedOperatorWO.work_order_number,
+                  mapping_group_id: loadResult.data.mapping_group_id || null,
+                }
+
                 setMaterialStockEntries((prevEntries) =>
-                  [
-                    ...[
-                      {
-                        ...materialStockPayload,
-                        trolley_qr_code: code,
-                        id: saveResponse.data.id,
-                      },
-                      ...prevEntries,
-                    ],
-                  ].sort(
+                  [newEntry, ...prevEntries].sort(
                     (a, b) =>
                       new Date(b.loaded_at || '').getTime() -
                       new Date(a.loaded_at || '').getTime()
                   )
                 )
-                await trollyService.update(trolleyData.trolley_id, {
-                  is_occupied: true,
-                  trolley_code: trolleyData.trolley_code,
-                  qr_code: trolleyData.qr_code,
-                })
-                selectedOperatorWO.output_plan += maxQuantity
+
+                // Update work order output_plan
+                selectedOperatorWO.output_plan += loadedQty
                 await updateWorkOrderQuantitiesAndStatus()
-                showAlert('Cart loaded successfully', 'success')
+
+                // Show group info if available
+                if (loadResult.groupInfo) {
+                  const gi = loadResult.groupInfo
+                  setDialogMessage({
+                    text: gi.is_fully_loaded
+                      ? `✅ Cart fully loaded (all ${gi.total_members} group materials loaded)`
+                      : `⏳ Cart partially loaded (${gi.loaded_count}/${gi.total_members}). Remaining materials: ${gi.remaining_materials.join(', ')}`,
+                    severity: gi.is_fully_loaded ? 'success' : 'warning',
+                  })
+                } else {
+                  showAlert('Cart loaded successfully', 'success')
+                }
+
                 settrolleyQRCode('')
                 setTimeout(() => trolleyInputRef.current?.focus(), 100)
               } else {
-                showAlert('Failed to save cart record', 'error')
+                setDialogMessage({
+                  text: loadResult.message || 'Failed to load cart',
+                  severity: 'error',
+                })
+                setTimeout(() => trolleyInputRef.current?.focus(), 100)
               }
             } else {
               setDialogMessage({
@@ -332,9 +388,14 @@ const OperatorLoading: React.FC = () => {
               })
               setTimeout(() => trolleyInputRef.current?.focus(), 100)
             }
-          } catch {
+          } catch (error: unknown) {
+            const errorMessage =
+              error && typeof error === 'object' && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } })
+                    .response?.data?.message || 'Failed to load cart'
+                : 'Failed to load cart'
             setDialogMessage({
-              text: 'Failed to fetch material details or material not found',
+              text: errorMessage,
               severity: 'error',
             })
             setTimeout(() => trolleyInputRef.current?.focus(), 100)
@@ -506,6 +567,126 @@ const OperatorLoading: React.FC = () => {
     page * pageSize,
     (page + 1) * pageSize
   )
+
+  // === Socket.IO: Real-time updates ===
+
+  interface RfidStockUpdateData {
+    trolleyCode: string
+    locationType: string
+    locationName?: string
+    affectedWorkOrderIds?: string[]
+  }
+
+  interface LoadingStockUpdateData {
+    trolleyCode: string
+    materialCode: string
+    workOrderId: string
+    workOrderNumber: string
+    quantity: number
+    loadingType: string
+  }
+
+  const handleRfidStockUpdate = useCallback(
+    async (data: RfidStockUpdateData) => {
+      console.log('[Socket.IO] Received rfid:stockUpdate (room)', data)
+      if (!selectedOperatorWO) return
+
+      try {
+        const response = await materialStockService.getByWorkOrder(
+          selectedOperatorWO.id
+        )
+        if (response.success && response.data) {
+          setMaterialStockEntries(
+            response.data.sort(
+              (a: MaterialStockEntry, b: MaterialStockEntry) =>
+                new Date(b.loaded_at || '').getTime() -
+                new Date(a.loaded_at || '').getTime()
+            )
+          )
+        }
+      } catch (error) {
+        console.error('Failed to refresh stock entries:', error)
+      }
+
+      try {
+        const woResponse = await workOrderService.getAll({
+          page: 1,
+          limit: 10000,
+        })
+        if (woResponse.success && woResponse.data) {
+          const workOrderData = woResponse.data as WorkOrderListResponse
+          setOperatorWorkOrders(workOrderData.workOrders)
+          const updatedWO = workOrderData.workOrders.find(
+            (wo: WorkOrderResponse) => wo.id === selectedOperatorWO.id
+          )
+          if (updatedWO) setSelectedOperatorWO(updatedWO)
+        }
+      } catch (error) {
+        console.error('Failed to refresh work orders:', error)
+      }
+
+      setDialogMessage({
+        text: `📡 Stock updated via RFID: Cart ${data.trolleyCode} → ${data.locationType} (${data.locationName || ''})`,
+        severity: 'info',
+      })
+    },
+    [selectedOperatorWO]
+  )
+
+  const handleLoadingStockUpdate = useCallback(
+    async (data: LoadingStockUpdateData) => {
+      console.log('[Socket.IO] Received loading:stockUpdate (room)', data)
+      if (!selectedOperatorWO) return
+
+      try {
+        const response = await materialStockService.getByWorkOrder(
+          selectedOperatorWO.id
+        )
+        if (response.success && response.data) {
+          setMaterialStockEntries(
+            response.data.sort(
+              (a: MaterialStockEntry, b: MaterialStockEntry) =>
+                new Date(b.loaded_at || '').getTime() -
+                new Date(a.loaded_at || '').getTime()
+            )
+          )
+        }
+      } catch (error) {
+        console.error('Failed to refresh stock entries:', error)
+      }
+
+      try {
+        const woResponse = await workOrderService.getAll({
+          page: 1,
+          limit: 10000,
+        })
+        if (woResponse.success && woResponse.data) {
+          const workOrderData = woResponse.data as WorkOrderListResponse
+          setOperatorWorkOrders(workOrderData.workOrders)
+          const updatedWO = workOrderData.workOrders.find(
+            (wo: WorkOrderResponse) => wo.id === selectedOperatorWO.id
+          )
+          if (updatedWO) setSelectedOperatorWO(updatedWO)
+        }
+      } catch (error) {
+        console.error('Failed to refresh work orders:', error)
+      }
+    },
+    [selectedOperatorWO]
+  )
+
+  // Global: lightweight refresh of the work order list (for all clients)
+  const handleListRefresh = useCallback(async () => {
+    fetchWorkOrders()
+  }, [fetchWorkOrders])
+
+  // Targeted events (only for clients in the affected work order room)
+  useSocketEvent('rfid:stockUpdate', handleRfidStockUpdate, true)
+  useSocketEvent('loading:stockUpdate', handleLoadingStockUpdate, true)
+
+  // Global lightweight events (all clients refresh their WO list)
+  useSocketEvent('rfid:stockUpdate:listRefresh', handleListRefresh, true)
+  useSocketEvent('loading:stockUpdate:listRefresh', handleListRefresh, true)
 
   return (
     <Box>
