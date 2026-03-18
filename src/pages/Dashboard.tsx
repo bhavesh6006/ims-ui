@@ -217,6 +217,9 @@ const Dashboard: React.FC = () => {
               <TableCell>
                 <strong>Subtool</strong>
               </TableCell>
+              <TableCell>
+                <strong>Location</strong>
+              </TableCell>
               <TableCell align="right">
                 <strong>Total Produced</strong>
               </TableCell>
@@ -239,6 +242,7 @@ const Dashboard: React.FC = () => {
                 <TableCell>{String(row.material_name ?? '—')}</TableCell>
                 <TableCell>{String(row.material_type ?? '—')}</TableCell>
                 <TableCell>{String(row.subtool_name ?? '—')}</TableCell>
+                <TableCell>{String(row.location_name ?? '—')}</TableCell>
                 <TableCell align="right">
                   {String(row.total_quantity ?? 0)}
                 </TableCell>
