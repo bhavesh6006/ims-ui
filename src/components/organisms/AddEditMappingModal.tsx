@@ -370,6 +370,7 @@ const AddEditMappingModal: React.FC<AddEditMappingModalProps> = ({
           groups_to_update: existingGroups.map((g) => ({
             mapping_group_id: g.group_id,
             group_total_quantity: Number(g.group_total_quantity),
+            material_ids: g.material_ids.filter((id) => id),
           })),
           updated_by: 'current-user-uuid',
         }
