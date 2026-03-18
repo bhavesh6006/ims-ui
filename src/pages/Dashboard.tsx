@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Box,
   Typography,
@@ -10,9 +10,12 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Chip,
   IconButton,
   Collapse,
+  TextField,
+  MenuItem,
 } from '@mui/material'
 import {
   Inventory as InventoryIcon,
@@ -22,7 +25,6 @@ import {
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material'
 import api from '../services/api'
-import { trollyService } from '../services/trollyService'
 import workOrderService from '../services/workOrderService'
 
 type ActiveCard = 'trollies' | 'materials' | 'workOrders' | null
@@ -31,6 +33,12 @@ interface DashboardStats {
   activeTrollies: number
   totalMaterials: number
   pendingWorkOrders: number
+}
+
+interface CardPaging {
+  page: number
+  pageSize: number
+  total: number
 }
 
 const statusColor = (status: string) => {
@@ -58,6 +66,26 @@ const Dashboard: React.FC = () => {
   const [activeCard, setActiveCard] = useState<ActiveCard>(null)
   const [listData, setListData] = useState<Record<string, unknown>[]>([])
   const [listLoading, setListLoading] = useState(false)
+  const [paging, setPaging] = useState<
+    Record<NonNullable<ActiveCard>, CardPaging>
+  >({
+    trollies: { page: 0, pageSize: 10, total: 0 },
+    materials: { page: 0, pageSize: 10, total: 0 },
+    workOrders: { page: 0, pageSize: 10, total: 0 },
+  })
+  const [trollyFilters, setTrollyFilters] = useState({
+    occupied: '',
+    type: '',
+    location: '',
+    subtool: '',
+  })
+  const [materialFilters, setMaterialFilters] = useState({
+    type: '',
+    location: '',
+    subtool: '',
+  })
+  const trollyDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const materialDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     api
@@ -67,47 +95,133 @@ const Dashboard: React.FC = () => {
       .finally(() => setStatsLoading(false))
   }, [])
 
-  const fetchList = useCallback(async (card: ActiveCard) => {
-    if (!card) return
-    setListLoading(true)
-    setListData([])
-    try {
-      if (card === 'trollies') {
-        const res = await trollyService.getAll(1, 1000, '')
-        const items = (res as { data?: unknown[] }).data ?? (res as unknown[])
-        setListData(
-          Array.isArray(items) ? (items as Record<string, unknown>[]) : []
-        )
-      } else if (card === 'materials') {
-        const res = await api.get('/dashboard/materials')
-        const items = (res.data as { data?: unknown[] }).data ?? []
-        setListData(
-          Array.isArray(items) ? (items as Record<string, unknown>[]) : []
-        )
-      } else if (card === 'workOrders') {
-        const res = await workOrderService.getAll({
-          status: 'PENDING',
-          limit: 1000,
-        })
-        const items =
-          (res as { data?: { workOrders?: unknown[] } }).data?.workOrders ?? []
-        setListData(items as Record<string, unknown>[])
+  const fetchList = useCallback(
+    async (
+      card: NonNullable<ActiveCard>,
+      page: number,
+      pageSize: number,
+      filters: Record<string, string> = {}
+    ) => {
+      setListLoading(true)
+      try {
+        if (card === 'trollies') {
+          const params = new URLSearchParams({
+            page: String(page + 1),
+            limit: String(pageSize),
+          })
+          Object.entries(filters).forEach(([k, v]) => {
+            if (v) params.set(k, v)
+          })
+          const res = await api.get(`/dashboard/trollies?${params}`)
+          const r = res.data as {
+            data: Record<string, unknown>[]
+            total: number
+          }
+          setListData(r.data ?? [])
+          setPaging((p) => ({
+            ...p,
+            trollies: { page, pageSize, total: r.total ?? 0 },
+          }))
+        } else if (card === 'materials') {
+          const params = new URLSearchParams({
+            page: String(page + 1),
+            limit: String(pageSize),
+          })
+          Object.entries(filters).forEach(([k, v]) => {
+            if (v) params.set(k, v)
+          })
+          const res = await api.get(`/dashboard/materials?${params}`)
+          const r = res.data as {
+            data: Record<string, unknown>[]
+            total: number
+          }
+          setListData(r.data ?? [])
+          setPaging((p) => ({
+            ...p,
+            materials: { page, pageSize, total: r.total ?? 0 },
+          }))
+        } else if (card === 'workOrders') {
+          const res = await workOrderService.getAll({
+            status: 'PENDING',
+            page: page + 1,
+            limit: pageSize,
+          })
+          const r = (
+            res as {
+              data?: { workOrders?: Record<string, unknown>[]; total?: number }
+            }
+          ).data
+          setListData(r?.workOrders ?? [])
+          setPaging((p) => ({
+            ...p,
+            workOrders: { page, pageSize, total: r?.total ?? 0 },
+          }))
+        }
+      } catch {
+        setListData([])
+      } finally {
+        setListLoading(false)
       }
-    } catch {
-      setListData([])
-    } finally {
-      setListLoading(false)
-    }
-  }, [])
+    },
+    []
+  )
 
   const handleCardClick = (card: ActiveCard) => {
+    if (!card) return
     if (activeCard === card) {
       setActiveCard(null)
       setListData([])
     } else {
       setActiveCard(card)
-      fetchList(card)
+      setListData([])
+      const filters =
+        card === 'trollies'
+          ? trollyFilters
+          : card === 'materials'
+            ? materialFilters
+            : {}
+      fetchList(card, 0, paging[card].pageSize, filters)
     }
+  }
+
+  const handlePageChange = (_: unknown, newPage: number) => {
+    if (!activeCard) return
+    const filters =
+      activeCard === 'trollies'
+        ? trollyFilters
+        : activeCard === 'materials'
+          ? materialFilters
+          : {}
+    fetchList(activeCard, newPage, paging[activeCard].pageSize, filters)
+  }
+
+  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!activeCard) return
+    const filters =
+      activeCard === 'trollies'
+        ? trollyFilters
+        : activeCard === 'materials'
+          ? materialFilters
+          : {}
+    fetchList(activeCard, 0, parseInt(e.target.value, 10), filters)
+  }
+
+  const handleTrollyFilter = (field: string, value: string) => {
+    const newFilters = { ...trollyFilters, [field]: value }
+    setTrollyFilters(newFilters)
+    if (trollyDebounce.current) clearTimeout(trollyDebounce.current)
+    trollyDebounce.current = setTimeout(() => {
+      fetchList('trollies', 0, paging.trollies.pageSize, newFilters)
+    }, 400)
+  }
+
+  const handleMaterialFilter = (field: string, value: string) => {
+    const newFilters = { ...materialFilters, [field]: value }
+    setMaterialFilters(newFilters)
+    if (materialDebounce.current) clearTimeout(materialDebounce.current)
+    materialDebounce.current = setTimeout(() => {
+      fetchList('materials', 0, paging.materials.pageSize, newFilters)
+    }, 400)
   }
 
   const cards = [
@@ -135,18 +249,11 @@ const Dashboard: React.FC = () => {
   ]
 
   const renderTable = () => {
-    if (listLoading) {
+    if (listLoading && listData.length === 0) {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress />
         </Box>
-      )
-    }
-    if (!listData.length) {
-      return (
-        <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-          No records found.
-        </Typography>
       )
     }
 
@@ -163,35 +270,100 @@ const Dashboard: React.FC = () => {
               </TableCell>
               <TableCell>
                 <strong>Type</strong>
+                <TextField
+                  size="small"
+                  placeholder="Filter…"
+                  value={trollyFilters.type}
+                  onChange={(e) => handleTrollyFilter('type', e.target.value)}
+                  variant="outlined"
+                  sx={{ mt: 0.5, display: 'block' }}
+                  inputProps={{
+                    style: { padding: '3px 6px', fontSize: '0.75rem' },
+                  }}
+                />
               </TableCell>
               <TableCell>
                 <strong>Condition</strong>
               </TableCell>
               <TableCell>
                 <strong>Occupied</strong>
+                <TextField
+                  select
+                  size="small"
+                  value={trollyFilters.occupied}
+                  onChange={(e) =>
+                    handleTrollyFilter('occupied', e.target.value)
+                  }
+                  sx={{
+                    mt: 0.5,
+                    display: 'block',
+                    minWidth: 70,
+                    '& .MuiInputBase-input': { py: '3px', fontSize: '0.75rem' },
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="true">Yes</MenuItem>
+                  <MenuItem value="false">No</MenuItem>
+                </TextField>
               </TableCell>
               <TableCell>
-                <strong>Status</strong>
+                <strong>Location</strong>
+                <TextField
+                  size="small"
+                  placeholder="Filter…"
+                  value={trollyFilters.location}
+                  onChange={(e) =>
+                    handleTrollyFilter('location', e.target.value)
+                  }
+                  variant="outlined"
+                  sx={{ mt: 0.5, display: 'block' }}
+                  inputProps={{
+                    style: { padding: '3px 6px', fontSize: '0.75rem' },
+                  }}
+                />
+              </TableCell>
+              <TableCell>
+                <strong>Subtool / Material</strong>
+                <TextField
+                  size="small"
+                  placeholder="Filter…"
+                  value={trollyFilters.subtool}
+                  onChange={(e) =>
+                    handleTrollyFilter('subtool', e.target.value)
+                  }
+                  variant="outlined"
+                  sx={{ mt: 0.5, display: 'block' }}
+                  inputProps={{
+                    style: { padding: '3px 6px', fontSize: '0.75rem' },
+                  }}
+                />
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {listData.map((row, i) => (
-              <TableRow key={String(row.trolley_id ?? i)} hover>
-                <TableCell>{i + 1}</TableCell>
-                <TableCell>{String(row.trolley_code ?? '—')}</TableCell>
-                <TableCell>{String(row.trolly_type ?? '—')}</TableCell>
-                <TableCell>{String(row.trolly_condition ?? '—')}</TableCell>
-                <TableCell>{row.is_occupied ? 'Yes' : 'No'}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={String(row.status ?? '—')}
-                    color={statusColor(String(row.status))}
-                    size="small"
-                  />
+            {listData.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  align="center"
+                  sx={{ py: 3, color: 'text.secondary' }}
+                >
+                  No records found.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              listData.map((row, i) => (
+                <TableRow key={String(row.trolley_id ?? i)} hover>
+                  <TableCell>{i + 1}</TableCell>
+                  <TableCell>{String(row.trolley_code ?? '—')}</TableCell>
+                  <TableCell>{String(row.trolly_type ?? '—')}</TableCell>
+                  <TableCell>{String(row.trolly_condition ?? '—')}</TableCell>
+                  <TableCell>{row.is_occupied ? 'Yes' : 'No'}</TableCell>
+                  <TableCell>{String(row.location_name ?? '—')}</TableCell>
+                  <TableCell>{String(row.subtool ?? '—')}</TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       )
@@ -209,58 +381,101 @@ const Dashboard: React.FC = () => {
                 <strong>Material Code</strong>
               </TableCell>
               <TableCell>
-                <strong>Material Name</strong>
-              </TableCell>
-              <TableCell>
                 <strong>Type</strong>
+                <TextField
+                  size="small"
+                  placeholder="Filter…"
+                  value={materialFilters.type}
+                  onChange={(e) => handleMaterialFilter('type', e.target.value)}
+                  variant="outlined"
+                  sx={{ mt: 0.5, display: 'block' }}
+                  inputProps={{
+                    style: { padding: '3px 6px', fontSize: '0.75rem' },
+                  }}
+                />
               </TableCell>
               <TableCell>
                 <strong>Subtool</strong>
+                <TextField
+                  size="small"
+                  placeholder="Filter…"
+                  value={materialFilters.subtool}
+                  onChange={(e) =>
+                    handleMaterialFilter('subtool', e.target.value)
+                  }
+                  variant="outlined"
+                  sx={{ mt: 0.5, display: 'block' }}
+                  inputProps={{
+                    style: { padding: '3px 6px', fontSize: '0.75rem' },
+                  }}
+                />
               </TableCell>
               <TableCell>
                 <strong>Location</strong>
-              </TableCell>
-              <TableCell align="right">
-                <strong>Total Produced</strong>
-              </TableCell>
-              <TableCell align="right">
-                <strong>Consumed</strong>
-              </TableCell>
-              <TableCell align="right">
-                <strong>In Stock</strong>
+                <TextField
+                  size="small"
+                  placeholder="Filter…"
+                  value={materialFilters.location}
+                  onChange={(e) =>
+                    handleMaterialFilter('location', e.target.value)
+                  }
+                  variant="outlined"
+                  sx={{ mt: 0.5, display: 'block' }}
+                  inputProps={{
+                    style: { padding: '3px 6px', fontSize: '0.75rem' },
+                  }}
+                />
               </TableCell>
               <TableCell>
-                <strong>Status</strong>
+                <strong>Door Color</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Handle</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Micom</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Lock Type</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Disp Type</strong>
+              </TableCell>
+              <TableCell>
+                <strong>In Stock</strong>
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {listData.map((row, i) => (
-              <TableRow key={String(row.material_id ?? i)} hover>
-                <TableCell>{i + 1}</TableCell>
-                <TableCell>{String(row.material_code ?? '—')}</TableCell>
-                <TableCell>{String(row.material_name ?? '—')}</TableCell>
-                <TableCell>{String(row.material_type ?? '—')}</TableCell>
-                <TableCell>{String(row.subtool_name ?? '—')}</TableCell>
-                <TableCell>{String(row.location_name ?? '—')}</TableCell>
-                <TableCell align="right">
-                  {String(row.total_quantity ?? 0)}
-                </TableCell>
-                <TableCell align="right">
-                  {String(row.consumed_quantity ?? 0)}
-                </TableCell>
-                <TableCell align="right">
-                  <strong>{String(row.in_stock_quantity ?? 0)}</strong>
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={String(row.status ?? '—')}
-                    color={statusColor(String(row.status))}
-                    size="small"
-                  />
+            {listData.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={11}
+                  align="center"
+                  sx={{ py: 3, color: 'text.secondary' }}
+                >
+                  No records found.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              listData.map((row, i) => (
+                <TableRow key={`${String(row.material_code)}_${i}`} hover>
+                  <TableCell>{i + 1}</TableCell>
+                  <TableCell>{String(row.material_code ?? '—')}</TableCell>
+                  <TableCell>{String(row.material_type ?? '—')}</TableCell>
+                  <TableCell>{String(row.subtool_name ?? '—')}</TableCell>
+                  <TableCell>{String(row.location_name ?? '—')}</TableCell>
+                  <TableCell>{String(row.door_colour ?? '—')}</TableCell>
+                  <TableCell>{String(row.handle ?? '—')}</TableCell>
+                  <TableCell>{String(row.micom ?? '—')}</TableCell>
+                  <TableCell>{String(row.lock_type ?? '—')}</TableCell>
+                  <TableCell>{String(row.disp_type ?? '—')}</TableCell>
+                  <TableCell>
+                    <strong>{String(row.in_stock_quantity ?? 0)}</strong>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       )
@@ -298,24 +513,36 @@ const Dashboard: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {listData.map((row, i) => (
-              <TableRow key={String(row.id ?? i)} hover>
-                <TableCell>{i + 1}</TableCell>
-                <TableCell>{String(row.work_order_number ?? '—')}</TableCell>
-                <TableCell>{String(row.tool ?? '—')}</TableCell>
-                <TableCell>{String(row.sub_tool ?? '—')}</TableCell>
-                <TableCell>{String(row.date ?? '—')}</TableCell>
-                <TableCell>{String(row.input_plan ?? '—')}</TableCell>
-                <TableCell>{String(row.balance_quantity ?? '—')}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={String(row.status ?? '—')}
-                    color={statusColor(String(row.status))}
-                    size="small"
-                  />
+            {listData.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={8}
+                  align="center"
+                  sx={{ py: 3, color: 'text.secondary' }}
+                >
+                  No records found.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              listData.map((row, i) => (
+                <TableRow key={String(row.id ?? i)} hover>
+                  <TableCell>{i + 1}</TableCell>
+                  <TableCell>{String(row.work_order_number ?? '—')}</TableCell>
+                  <TableCell>{String(row.tool ?? '—')}</TableCell>
+                  <TableCell>{String(row.sub_tool ?? '—')}</TableCell>
+                  <TableCell>{String(row.date ?? '—')}</TableCell>
+                  <TableCell>{String(row.input_plan ?? '—')}</TableCell>
+                  <TableCell>{String(row.balance_quantity ?? '—')}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={String(row.status ?? '—')}
+                      color={statusColor(String(row.status))}
+                      size="small"
+                    />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       )
@@ -402,9 +629,20 @@ const Dashboard: React.FC = () => {
           >
             <Typography variant="h6">{activeCardMeta?.title} List</Typography>
           </Box>
-          <TableContainer sx={{ maxHeight: 480 }}>
+          <TableContainer sx={{ maxHeight: 440 }}>
             {renderTable()}
           </TableContainer>
+          {activeCard && (
+            <TablePagination
+              rowsPerPageOptions={[10, 25, 50, 100]}
+              component="div"
+              count={paging[activeCard].total}
+              rowsPerPage={paging[activeCard].pageSize}
+              page={paging[activeCard].page}
+              onPageChange={handlePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
+            />
+          )}
         </Paper>
       </Collapse>
     </Box>
