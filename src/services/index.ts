@@ -15,3 +15,4 @@ import trolleyTypeService from './trolleyTypeService'
 export { trolleyTypeService }
 export { trolleyConditionService } from './trolleyConditionService'
 export { deviceService } from './deviceService'
+export { default as rfidEventService } from './rfidEventService'

@@ -34,6 +34,7 @@ interface DataTableProps<T = Record<string, unknown>> {
   onView?: (row: T) => void
   showActions?: boolean
   loading?: boolean
+  renderCustomActions?: (row: T) => React.ReactNode
 }
 
 const DataTable = <
@@ -51,6 +52,7 @@ const DataTable = <
   onView,
   showActions = true,
   loading = false,
+  renderCustomActions,
 }: DataTableProps<T>) => {
   const safeData = Array.isArray(data) ? data : []
   const totalColumns = columns.length + (showActions ? 1 : 0)
@@ -137,6 +139,7 @@ const DataTable = <
                         {onDelete && (
                           <DeleteButton onClick={() => onDelete(row)} />
                         )}
+                        {renderCustomActions && renderCustomActions(row)}
                       </Box>
                     </TableCell>
                   )}

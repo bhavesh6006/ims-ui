@@ -11,17 +11,20 @@ import {
   DialogActions,
   IconButton,
   Paper,
+  Tooltip,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import CategoryIcon from '@mui/icons-material/Category'
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline'
 import { DataTable, type Column } from '../components/organisms'
 import { SearchBar, Alert } from '../components/molecules'
 import {
   trollyService,
   trolleyTypeService,
   trolleyConditionService,
+  rfidEventService,
 } from '../services'
 import type { TrolleyType } from '../services/trolleyTypeService'
 import type { TrolleyCondition } from '../services/trolleyConditionService'
@@ -366,6 +369,50 @@ const TrollyMaster: React.FC = () => {
     loadTrollies()
   }
 
+  const handleManualRelease = async (trolly: Trolly) => {
+    const barcode = trolly.barcode || trolly.qr_code
+    if (!barcode) {
+      showAlert('No barcode/QR code found for this cart', 'error')
+      return
+    }
+    if (
+      !window.confirm(
+        `Are you sure you want to manually release cart ${trolly.trolley_code}?`
+      )
+    ) {
+      return
+    }
+    try {
+      await rfidEventService.triggerManualEvent(barcode)
+      showAlert(`Cart ${trolly.trolley_code} released successfully`, 'success')
+      loadTrollies()
+    } catch {
+      showAlert('Failed to release cart', 'error')
+    }
+  }
+
+  const renderCustomActions = (row: Trolly) => {
+    const isOccupied = Boolean((row as Record<string, unknown>).is_occupied)
+    const isPartialLoaded =
+      (row as Record<string, unknown>).loading_status === 'PARTIAL_LOADED'
+    const canRelease = isOccupied || isPartialLoaded
+
+    return (
+      <Tooltip title={canRelease ? 'Release Cart' : 'Cart is not occupied'}>
+        <span>
+          <IconButton
+            size="small"
+            color="warning"
+            disabled={!canRelease}
+            onClick={() => handleManualRelease(row)}
+          >
+            <RemoveCircleOutlineIcon />
+          </IconButton>
+        </span>
+      </Tooltip>
+    )
+  }
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
@@ -407,6 +454,7 @@ const TrollyMaster: React.FC = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         loading={loading}
+        renderCustomActions={renderCustomActions}
       />
 
       <Dialog
