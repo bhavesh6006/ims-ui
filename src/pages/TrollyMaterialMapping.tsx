@@ -11,6 +11,7 @@ import {
   TableHead,
   TableRow,
   TablePagination,
+  Chip,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import { SearchBar, Alert } from '../components/molecules'
@@ -142,6 +143,20 @@ const TrollyMaterialMapping: React.FC = () => {
     setPage(0)
   }
 
+  // Helper functions for counting groups and individuals
+  const getGroupCount = (mapping: TrolleyTypeMapping) => {
+    const groupIds = new Set(
+      mapping.mappings
+        .filter((m) => m.is_group_mapping && m.mapping_group_id)
+        .map((m) => m.mapping_group_id)
+    )
+    return groupIds.size
+  }
+
+  const getIndividualCount = (mapping: TrolleyTypeMapping) => {
+    return mapping.mappings.filter((m) => !m.is_group_mapping).length
+  }
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
@@ -201,7 +216,26 @@ const TrollyMaterialMapping: React.FC = () => {
               mappings.map((mapping) => (
                 <TableRow key={mapping.trolley_type_id} hover>
                   <TableCell>{mapping.trolley_type}</TableCell>
-                  <TableCell>{mapping.total_materials}</TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      {mapping.total_materials}
+                      {getGroupCount(mapping) > 0 && (
+                        <Chip
+                          label={`${getGroupCount(mapping)} group(s)`}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      )}
+                      {getIndividualCount(mapping) > 0 && (
+                        <Chip
+                          label={`${getIndividualCount(mapping)} individual`}
+                          size="small"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
+                  </TableCell>
                   <TableCell>
                     <Box
                       sx={{

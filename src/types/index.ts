@@ -21,6 +21,7 @@ export interface Trolly extends Record<string, unknown> {
   updatedAt?: string
   trolly_type?: string // Note: API uses 'trolly_type' not 'trolley_type'
   trolly_condition?: string
+  is_occupied?: boolean
 }
 
 // Material Master

@@ -78,14 +78,10 @@ export const materialStockService = {
     return response.data
   },
 
-  // Create new stock record
-  createStock: async (
-    data: Omit<MaterialStock, 'id' | 'createdAt' | 'updatedAt' | 'loadedAt'>
-  ) => {
-    const response = await api.post<ApiResponse<MaterialStock>>(
-      '/material-stock',
-      data
-    )
+  // Create new stock record (supports group-aware loading when trolley_id, trolley_type_id, material_id are provided)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  createStock: async (data: Record<string, any>) => {
+    const response = await api.post('/material-stock', data)
     return response.data
   },
 

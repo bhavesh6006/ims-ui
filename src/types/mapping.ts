@@ -20,6 +20,9 @@ export interface MappingItem {
   trolley_type_id: string
   material_id: string
   max_quantity: number
+  mapping_group_id: string | null
+  group_total_quantity: number | null
+  is_group_mapping: boolean
   status: string
   trolleyType?: TrolleyType
   material?: Material
