@@ -432,11 +432,12 @@ const OperatorLoading: React.FC = () => {
   )
 
   const handleTrolleyInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
+    const value = e.target.value.slice(0, 8)
     settrolleyQRCode(value)
     if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current)
-    if (value.trim())
-      scanTimeoutRef.current = setTimeout(() => processTrolleyScan(value), 500)
+    if (value.trim().length === 8) {
+      processTrolleyScan(value)
+    }
   }
 
   const handleTrolleyKeyDown = (e: React.KeyboardEvent) => {
