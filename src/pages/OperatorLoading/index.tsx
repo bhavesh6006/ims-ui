@@ -347,7 +347,7 @@ const OperatorLoading: React.FC = () => {
                 const newEntry: MaterialStockEntry = {
                   id: loadResult.data.id,
                   trolley_code: loadResult.data.trolley_code,
-                  trolley_qr_code: code,
+                  trolley_qr_code: code.toUpperCase(),
                   material_code: loadResult.data.material_code,
                   quantity: loadResult.data.quantity,
                   loading_type: loadResult.data.loading_type,

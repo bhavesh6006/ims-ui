@@ -312,8 +312,12 @@ const TrollyMaster: React.FC = () => {
         trolley_code: formData.trollyCode,
         trolly_type_id: formData.trollyTypeId,
         trolley_condition_id: formData.trollyConditionId,
-        barcode: formData.barcode,
-        qr_code: formData.qrCode,
+        barcode: formData.barcode
+          ? formData.barcode.toUpperCase()
+          : formData.barcode,
+        qr_code: formData.qrCode
+          ? formData.qrCode.toUpperCase()
+          : formData.qrCode,
         length_mm: formData.lengthMm || '0',
         width_mm: formData.widthMm || '0',
         height_mm: formData.heightMm || '0',
