@@ -23,6 +23,15 @@ import EditRecordDialog from './EditRecordDialog'
 import { useSocketEvent } from '../../hooks/useSocketEvent'
 import { joinWorkOrder, leaveWorkOrder } from '../../services/socketService'
 
+// Debounce helper
+const debounce = (fn: () => void, delay: number) => {
+  let timer: NodeJS.Timeout | null = null
+  return () => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(fn, delay)
+  }
+}
+
 const OperatorLoading: React.FC = () => {
   const [operatorWorkOrders, setOperatorWorkOrders] = useState<
     WorkOrderResponse[]
@@ -63,6 +72,12 @@ const OperatorLoading: React.FC = () => {
 
   const trolleyInputRef = useRef<HTMLInputElement>(null)
   const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Track if a dialog is open to suppress global refreshes
+  const isDialogOpenRef = useRef(false)
+  useEffect(() => {
+    isDialogOpenRef.current = showLoadingDialog || editDialogOpen
+  }, [showLoadingDialog, editDialogOpen])
 
   const showAlert = (message: string, severity: 'success' | 'error') => {
     setAlert({ open: true, message, severity })
@@ -254,7 +269,9 @@ const OperatorLoading: React.FC = () => {
 
     showAlert(`Work order updated: Status - ${newStatus}`, 'success')
 
-    if (selectedOperatorWO.status === 'CLOSED' && newStatus === 'IN_PROGRESS') {
+    // Only close dialog and do a full refresh if transitioning TO closed
+    // Don't refetch if just updating status within dialog
+    if (newStatus === 'CLOSED') {
       handleCancelLoading()
       await fetchWorkOrders()
     }
@@ -559,8 +576,14 @@ const OperatorLoading: React.FC = () => {
         if (quantityDiff !== 0) {
           await updateWorkOrderQuantitiesAndStatus()
         }
-        // Refresh the work orders list to reflect changes in the main table
-        await fetchWorkOrders()
+        // Update work order locally instead of full refetch
+        setOperatorWorkOrders((prev) =>
+          prev.map((wo) =>
+            wo.id === selectedOperatorWO.id
+              ? { ...wo, output_plan: selectedOperatorWO.output_plan }
+              : wo
+          )
+        )
         showAlert('Record updated successfully', 'success')
       } else {
         showAlert('Failed to update record', 'error')
@@ -632,21 +655,18 @@ const OperatorLoading: React.FC = () => {
         console.error('Failed to refresh stock entries:', error)
       }
 
+      // Update only the selected work order, not the entire list
       try {
-        const woResponse = await workOrderService.getAll({
-          page: 1,
-          limit: 10000,
-        })
+        const woResponse = await workOrderService.getById(selectedOperatorWO.id)
         if (woResponse.success && woResponse.data) {
-          const workOrderData = woResponse.data as WorkOrderListResponse
-          setOperatorWorkOrders(workOrderData.workOrders)
-          const updatedWO = workOrderData.workOrders.find(
-            (wo: WorkOrderResponse) => wo.id === selectedOperatorWO.id
+          const updatedWO = woResponse.data as WorkOrderResponse
+          setSelectedOperatorWO(updatedWO)
+          setOperatorWorkOrders((prev) =>
+            prev.map((wo) => (wo.id === updatedWO.id ? updatedWO : wo))
           )
-          if (updatedWO) setSelectedOperatorWO(updatedWO)
         }
       } catch (error) {
-        console.error('Failed to refresh work orders:', error)
+        console.error('Failed to refresh work order:', error)
       }
 
       setDialogMessage({
@@ -679,30 +699,39 @@ const OperatorLoading: React.FC = () => {
         console.error('Failed to refresh stock entries:', error)
       }
 
+      // Update only the selected work order, not the entire list
       try {
-        const woResponse = await workOrderService.getAll({
-          page: 1,
-          limit: 10000,
-        })
+        const woResponse = await workOrderService.getById(selectedOperatorWO.id)
         if (woResponse.success && woResponse.data) {
-          const workOrderData = woResponse.data as WorkOrderListResponse
-          setOperatorWorkOrders(workOrderData.workOrders)
-          const updatedWO = workOrderData.workOrders.find(
-            (wo: WorkOrderResponse) => wo.id === selectedOperatorWO.id
+          const updatedWO = woResponse.data as WorkOrderResponse
+          setSelectedOperatorWO(updatedWO)
+          setOperatorWorkOrders((prev) =>
+            prev.map((wo) => (wo.id === updatedWO.id ? updatedWO : wo))
           )
-          if (updatedWO) setSelectedOperatorWO(updatedWO)
         }
       } catch (error) {
-        console.error('Failed to refresh work orders:', error)
+        console.error('Failed to refresh work order:', error)
       }
     },
     [selectedOperatorWO]
   )
 
-  // Global: lightweight refresh of the work order list (for all clients)
-  const handleListRefresh = useCallback(async () => {
+  // Global: debounced, lightweight refresh of the work order list
+  // Only refresh if no dialog is open to avoid disrupting user interaction
+  const handleListRefreshRaw = useCallback(async () => {
+    if (isDialogOpenRef.current) {
+      console.log('[Socket.IO] Skipping global list refresh — dialog is open')
+      return
+    }
     fetchWorkOrders()
   }, [fetchWorkOrders])
+
+  // Debounce global list refresh to prevent rapid successive calls
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handleListRefresh = useCallback(
+    debounce(() => handleListRefreshRaw(), 2000),
+    [handleListRefreshRaw]
+  )
 
   // Targeted events (only for clients in the affected work order room)
   useSocketEvent('rfid:stockUpdate', handleRfidStockUpdate, true)

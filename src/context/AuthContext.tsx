@@ -19,6 +19,18 @@ const generateSessionId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
+// Generate a unique ID for this browser tab (sessionStorage is per-tab)
+const getOrCreateTabId = (): string => {
+  let tabId = sessionStorage.getItem('tabId')
+  if (!tabId) {
+    tabId = `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    sessionStorage.setItem('tabId', tabId)
+  }
+  return tabId
+}
+
+const TAB_ID = getOrCreateTabId()
+
 const TOKEN_REFRESH_INTERVAL = 10 * 60 * 1000 // Refresh token every 10 minutes (before 15 min expiry)
 const INACTIVITY_TIMEOUT = 15 * 60 * 1000 // 15 minutes
 
@@ -31,7 +43,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Check if session is valid
   const isSessionValid = useCallback((): boolean => {
     const storedSessionId = localStorage.getItem('sessionId')
-    return storedSessionId === sessionId && sessionId !== null
+    const activeTabId = localStorage.getItem('activeTabId')
+    return (
+      storedSessionId === sessionId &&
+      sessionId !== null &&
+      activeTabId === TAB_ID
+    )
   }, [sessionId])
 
   // Logout function
@@ -97,20 +114,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Listen for storage changes (detect login from another tab)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'sessionId' && e.newValue !== sessionId) {
+      // Another tab logged in and became the active tab
+      if (e.key === 'activeTabId' && e.newValue !== TAB_ID) {
         console.log('Session invalidated: Login detected from another tab')
-        logout()
+        setToken(null)
+        setUser(null)
+        setSessionId(null)
+        sessionStorage.setItem('sessionExpiredReason', 'NEW_SESSION')
         window.location.href = '/login'
+        return
+      }
+
+      if (e.key === 'sessionId' && e.newValue !== sessionId) {
+        console.log('Session invalidated: Session ID changed')
+        setToken(null)
+        setUser(null)
+        setSessionId(null)
+        sessionStorage.setItem('sessionExpiredReason', 'NEW_SESSION')
+        window.location.href = '/login'
+        return
       }
 
       if (e.key === 'token' && !e.newValue) {
-        logout()
+        setToken(null)
+        setUser(null)
+        setSessionId(null)
+        sessionStorage.setItem('sessionExpiredReason', 'LOGGED_OUT')
+        window.location.href = '/login'
       }
     }
 
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
-  }, [sessionId, logout])
+  }, [sessionId])
 
   // Periodically check session validity — only when authenticated
   useEffect(() => {
@@ -118,22 +154,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const interval = setInterval(() => {
       if (!isSessionValid()) {
-        console.log('Session invalidated: Session ID mismatch')
-        logout()
+        console.log('Session invalidated: Session ID or tab ID mismatch')
+        setToken(null)
+        setUser(null)
+        setSessionId(null)
+        sessionStorage.setItem('sessionExpiredReason', 'NEW_SESSION')
         window.location.href = '/login'
       }
     }, 3000)
 
     return () => clearInterval(interval)
-  }, [token, sessionId, isSessionValid, logout])
+  }, [token, sessionId, isSessionValid])
 
-  // Check for existing token on mount
+  // Check for existing token on mount — only restore if this tab owns the session
   useEffect(() => {
     const storedToken = localStorage.getItem('token')
     const storedUser = localStorage.getItem('user')
     const storedSessionId = localStorage.getItem('sessionId')
+    const activeTabId = localStorage.getItem('activeTabId')
 
-    if (storedToken && storedUser && storedSessionId) {
+    // Only restore session if THIS tab was the one that created it
+    if (
+      storedToken &&
+      storedUser &&
+      storedSessionId &&
+      activeTabId === TAB_ID
+    ) {
       try {
         const decoded = jwtDecode<JwtPayload>(storedToken)
         if (decoded.exp * 1000 > Date.now()) {
@@ -152,6 +198,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         logout()
       }
     }
+    // If activeTabId doesn't match this tab, don't auto-authenticate
+    // User must log in again in this tab
     setIsLoading(false)
   }, [logout])
 
@@ -167,17 +215,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const newSessionId = generateSessionId()
 
-    setToken(response.token)
-    setUser(response.user)
-    setSessionId(newSessionId)
+    // Force-clear old values first so that the `storage` event fires in other tabs
+    localStorage.removeItem('sessionId')
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    localStorage.removeItem('activeTabId')
+
+    // Small delay to ensure other tabs receive the removal event before new values
+    await new Promise((resolve) => setTimeout(resolve, 50))
 
     localStorage.setItem('token', response.token)
     localStorage.setItem('user', JSON.stringify(response.user))
     localStorage.setItem('sessionId', newSessionId)
+    localStorage.setItem('activeTabId', TAB_ID)
+
+    setToken(response.token)
+    setUser(response.user)
+    setSessionId(newSessionId)
   }
 
   // Handle user activity — only when authenticated
-  // Separate from token refresh to avoid resetting inactivity on token refresh
   useEffect(() => {
     if (!token || !sessionId) return
 

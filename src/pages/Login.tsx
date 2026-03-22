@@ -19,8 +19,23 @@ const Login: React.FC = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showSessionWarning, setShowSessionWarning] = useState(false)
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState('')
   const { login, isAuthenticated } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    // Check if the user was logged out due to a new session in another tab
+    const reason = sessionStorage.getItem('sessionExpiredReason')
+    if (reason === 'NEW_SESSION') {
+      setSessionExpiredMessage(
+        'You have been logged out because your account was signed in from another tab or window.'
+      )
+      sessionStorage.removeItem('sessionExpiredReason')
+    } else if (reason === 'LOGGED_OUT') {
+      setSessionExpiredMessage('Your session has ended.')
+      sessionStorage.removeItem('sessionExpiredReason')
+    }
+  }, [])
 
   useEffect(() => {
     // Check if there's an existing session
@@ -95,7 +110,17 @@ const Login: React.FC = () => {
               Sign in to your account
             </Typography>
 
-            {showSessionWarning && (
+            {sessionExpiredMessage && (
+              <Alert
+                severity="warning"
+                sx={{ mb: 2 }}
+                onClose={() => setSessionExpiredMessage('')}
+              >
+                {sessionExpiredMessage}
+              </Alert>
+            )}
+
+            {showSessionWarning && !sessionExpiredMessage && (
               <Alert
                 severity="warning"
                 sx={{ mb: 2 }}
